@@ -25,19 +25,28 @@ Spotify's macOS app exposes an AppleScript dictionary. Every two seconds, `shall
 
 ## Install
 
+**Quick install** — paste this in Terminal and it handles everything:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+```
+
+**Manual install** — if you'd prefer to read the code before running it:
+
 ```bash
 git clone https://github.com/andrewwoodruff/shall-not-pass.git
 cd shall-not-pass
+# inspect shall-not-pass.sh and install.sh, then:
 ./install.sh
 ```
 
-This copies the script to `~/.local/share/shall-not-pass/` and registers it as a LaunchAgent that starts automatically at login.
+Both options copy the script to `~/.local/share/shall-not-pass/` and register it as a LaunchAgent that starts automatically at login.
 
 > **Note:** macOS will likely prompt for Automation permission on first run. Open **System Settings → Privacy & Security → Automation** and allow your terminal to control Spotify.
 
 ### Try before installing
 
-Run it in the foreground first to see what it does:
+If you used the manual install, you can run it in the foreground first to see what it does:
 
 ```bash
 bash shall-not-pass.sh
@@ -49,20 +58,26 @@ Press `Ctrl-C` to stop. It will restore Spotify's volume before exiting.
 
 ## Updating
 
-One command picks up any new version and restarts the daemon:
+**Quick install users** — re-run the same install command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+```
+
+**Manual install users** — from the cloned repo directory:
 
 ```bash
 ./update.sh
 ```
 
-This is also the first thing to try if Spotify ever breaks AppleScript support — a fix will ship and `./update.sh` will apply it.
+Either way, this is also the first thing to try if Spotify ever breaks AppleScript support — a fix will ship and re-running this will apply it.
 
 ---
 
 ## Uninstall
 
 ```bash
-./uninstall.sh
+~/.local/share/shall-not-pass/uninstall.sh
 ```
 
 Stops the daemon and removes all installed files. No data is lost.
@@ -102,12 +117,16 @@ launchctl load -w ~/Library/LaunchAgents/com.shall-not-pass.plist
 
 **5. Update first** — many issues are fixed in newer versions
 ```bash
+# Quick install users:
+curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+# Manual install users (from repo dir):
 ./update.sh
 ```
 
 **6. Nuke and reinstall** — the clean-slate fix; safe to run anytime
 ```bash
-./uninstall.sh && ./install.sh
+~/.local/share/shall-not-pass/uninstall.sh
+curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
 ---
