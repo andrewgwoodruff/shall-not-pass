@@ -47,14 +47,29 @@ chmod +x "$INSTALL_DIR/shall-not-pass.sh" "$INSTALL_DIR/uninstall.sh"
 # Load the agent
 launchctl load -w "$PLIST_DEST"
 
+# Request Automation permission now, while the user is watching.
+# macOS will show a dialog asking to allow this terminal to control Spotify.
+# The daemon cannot function without this — better to surface it here than
+# have it silently fail in the background.
 echo ""
-echo "shall-not-pass installed and running."
+echo "Requesting Automation permission..."
+echo "(macOS may show a dialog. Click OK to allow your terminal to control Spotify.)"
 echo ""
-echo "  Log:      tail -f $LOG_FILE"
-echo "  Status:   launchctl list | grep shall-not-pass"
-echo "  Update:   curl -fsSL $REPO_URL/install.sh | bash"
+if osascript -e 'tell application "Spotify" to get sound volume' >/dev/null 2>&1; then
+    echo "Permission granted. shall-not-pass is ready."
+else
+    echo "IMPORTANT: Automation permission is required for shall-not-pass to work."
+    echo ""
+    echo "If Spotify is not open, open it and you will be prompted automatically."
+    echo "If you dismissed the dialog, grant permission manually:"
+    echo "  System Settings -> Privacy & Security -> Automation"
+    echo "  Enable your terminal app to control Spotify."
+    echo ""
+    echo "The daemon is running and will work as soon as permission is granted."
+fi
+
+echo ""
+echo "  Log:       tail -f $LOG_FILE"
+echo "  Status:    launchctl list | grep shall-not-pass"
+echo "  Update:    curl -fsSL $REPO_URL/install.sh | bash"
 echo "  Uninstall: $INSTALL_DIR/uninstall.sh"
-echo ""
-echo "Note: On first run, macOS may prompt for Automation permission."
-echo "If prompted, open System Settings → Privacy & Security → Automation"
-echo "and allow your terminal to control Spotify."
