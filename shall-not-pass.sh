@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shall-not-pass — silences Spotify ads without touching system volume
-# https://github.com/andrewwoodruff/shall-not-pass
+# https://github.com/andrewgwoodruff/shall-not-pass
 
 set -euo pipefail
 

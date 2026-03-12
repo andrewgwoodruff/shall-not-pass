@@ -28,13 +28,13 @@ Spotify's macOS app exposes an AppleScript dictionary. Every two seconds, `shall
 **Quick install** — paste this in Terminal and it handles everything:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
 **Manual install** — if you'd prefer to read the code before running it:
 
 ```bash
-git clone https://github.com/andrewwoodruff/shall-not-pass.git
+git clone https://github.com/andrewgwoodruff/shall-not-pass.git
 cd shall-not-pass
 # inspect shall-not-pass.sh and install.sh, then:
 ./install.sh
@@ -61,7 +61,7 @@ Press `Ctrl-C` to stop. It will restore Spotify's volume before exiting.
 **Quick install users** — re-run the same install command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
 **Manual install users** — from the cloned repo directory:
@@ -118,7 +118,7 @@ launchctl load -w ~/Library/LaunchAgents/com.shall-not-pass.plist
 **5. Update first** — many issues are fixed in newer versions
 ```bash
 # Quick install users:
-curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 # Manual install users (from repo dir):
 ./update.sh
 ```
@@ -126,7 +126,7 @@ curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/
 **6. Nuke and reinstall** — the clean-slate fix; safe to run anytime
 ```bash
 ~/.local/share/shall-not-pass/uninstall.sh
-curl -fsSL https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
 ---

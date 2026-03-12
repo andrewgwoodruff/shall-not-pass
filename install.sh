@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://raw.githubusercontent.com/andrewwoodruff/shall-not-pass/main"
+REPO_URL="https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main"
 INSTALL_DIR="$HOME/.local/share/shall-not-pass"
 PLIST_DEST="$HOME/Library/LaunchAgents/com.shall-not-pass.plist"
 LOG_FILE="$HOME/Library/Logs/shall-not-pass.log"

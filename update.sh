@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! git -C "$SCRIPT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
     echo "Error: $SCRIPT_DIR is not a git repository."
     echo "If you downloaded a zip, delete it and clone instead:"
-    echo "  git clone https://github.com/andrewwoodruff/shall-not-pass.git"
+    echo "  git clone https://github.com/andrewgwoodruff/shall-not-pass.git"
     exit 1
 fi
 
