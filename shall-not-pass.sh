@@ -17,8 +17,14 @@ log() {
 restore_volume() {
     if [ "$AD_PLAYING" = true ]; then
         osascript -e "tell application \"Spotify\" to set sound volume to $SAVED_VOLUME" 2>/dev/null || true
-        log "Volume restored to $SAVED_VOLUME"
-        AD_PLAYING=false
+        local current_vol
+        current_vol=$(osascript -e 'tell application "Spotify" to get sound volume' 2>/dev/null || echo "-1")
+        if [ "$current_vol" = "$SAVED_VOLUME" ]; then
+            log "Volume restored to $SAVED_VOLUME"
+            AD_PLAYING=false
+        else
+            log "Volume restore failed (expected $SAVED_VOLUME, got $current_vol). Will retry next poll."
+        fi
     fi
 }
 
@@ -71,6 +77,10 @@ while true; do
     if [[ "$CURRENT_URL" == spotify:ad:* ]]; then
         if [ "$AD_PLAYING" = false ]; then
             SAVED_VOLUME=$(osascript -e 'tell application "Spotify" to get sound volume' 2>/dev/null || echo "50")
+            if [ "$SAVED_VOLUME" = "0" ]; then
+                log "Captured volume was 0 (possible stale mute). Defaulting to 50."
+                SAVED_VOLUME=50
+            fi
             osascript -e 'tell application "Spotify" to set sound volume to 0' 2>/dev/null || true
             AD_PLAYING=true
             log "Interruption detected. Muted. (saved volume: $SAVED_VOLUME)"
