@@ -63,6 +63,9 @@ else
     echo ""
 fi
 
+# Unload any existing agent before (re)loading, so reinstalls work cleanly
+launchctl unload "$PLIST_DEST" 2>/dev/null || true
+
 # Load the agent
 launchctl load -w "$PLIST_DEST"
 
