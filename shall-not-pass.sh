@@ -17,10 +17,13 @@ log() {
 restore_volume() {
     if [ "$AD_PLAYING" = true ]; then
         osascript -e "tell application \"Spotify\" to set sound volume to $SAVED_VOLUME" 2>/dev/null || true
-        local current_vol
+        local current_vol diff
         current_vol=$(osascript -e 'tell application "Spotify" to get sound volume' 2>/dev/null || echo "-1")
-        if [ "$current_vol" = "$SAVED_VOLUME" ]; then
-            log "Volume restored to $SAVED_VOLUME"
+        # Spotify quantizes volume internally; accept ±1 to avoid an infinite retry loop
+        diff=$(( current_vol - SAVED_VOLUME ))
+        [ "$diff" -lt 0 ] && diff=$(( -diff ))
+        if [ "$diff" -le 1 ]; then
+            log "Volume restored to $current_vol"
             AD_PLAYING=false
         else
             log "Volume restore failed (expected $SAVED_VOLUME, got $current_vol). Will retry next poll."
@@ -88,7 +91,9 @@ while true; do
     else
         if [ "$AD_PLAYING" = true ]; then
             restore_volume
-            log "Interruption ended. Volume restored."
+            if [ "$AD_PLAYING" = false ]; then
+                log "Interruption ended. Volume restored."
+            fi
         fi
     fi
 
