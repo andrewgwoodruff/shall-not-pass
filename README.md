@@ -133,6 +133,8 @@ curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main
 curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
+**7. Still broken?** [Open an issue](https://github.com/andrewgwoodruff/shall-not-pass/issues) and include the output of `tail -50 ~/Library/Logs/shall-not-pass.log`.
+
 ---
 
 ## Platform support
