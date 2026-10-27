@@ -4,19 +4,19 @@
 
 ---
 
-## Current: macOS (v1)
+## Current: macOS (v2)
 
-Shell script daemon that silences audio interruptions in Spotify via AppleScript. Runs automatically at login via launchd. Zero dependencies.
+Event-driven Swift daemon. It subscribes to Spotify's track-change broadcasts and mutes within about 100ms, with a 2-second backup poll in case a broadcast is missed. Runs automatically at login via launchd. If the Xcode Command Line Tools aren't installed, the installer uses the v1 shell script instead.
 
 **Known limitations:**
-- ~2 second detection latency before muting kicks in
+- Spotify announces an ad when it starts, not before, so a few milliseconds may be audible
 - AppleScript support is controlled by Spotify and has broken in past updates — run `./update.sh` if you notice it stop working
 
 ---
 
-## Coming: macOS v2
+## Maybe: Core Audio process tap (macOS 14.2+)
 
-A rewrite that eliminates the detection latency by subscribing to Spotify's track-change events instead of polling. The mute will be near-instant. No change to how you install or use it.
+Mute Spotify's audio stream directly instead of moving its volume slider. There would be nothing to save or restore, but it needs the System Audio Recording permission.
 
 ---
 

@@ -2,3 +2,6 @@
 *.log
 .claude/
 research.md
+
+# Built binary
+/shall-not-pass

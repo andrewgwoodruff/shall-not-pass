@@ -7,8 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/bin/bash</string>
-        <string>__INSTALL_DIR__/shall-not-pass.sh</string>
+        <string>__INSTALL_DIR__/shall-not-pass</string>
     </array>
 
     <key>EnvironmentVariables</key>
@@ -22,6 +21,10 @@
 
     <key>KeepAlive</key>
     <true/>
+
+    <!-- Don't let macOS throttle the daemon; muting should be immediate -->
+    <key>ProcessType</key>
+    <string>Interactive</string>
 
     <key>StandardOutPath</key>
     <string>/Users/__USERNAME__/Library/Logs/shall-not-pass.log</string>
