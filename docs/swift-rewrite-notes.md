@@ -2,6 +2,8 @@
 
 This document captures the context needed to implement the v2 Swift rewrite of `shall-not-pass`. The v1 shell script works but polls every 2 seconds. Swift with `DistributedNotificationCenter` eliminates polling entirely — the script only runs when Spotify broadcasts a track change.
 
+> **Status:** implemented. The Swift source is embedded at the bottom of [`shall-not-pass.sh`](../shall-not-pass.sh) (`./shall-not-pass.sh --source` prints it). The script builds and `exec`s it, or falls back to the v1 polling loop. Embedding it means every installer and updater, including old ones that only copy `shall-not-pass.sh`, ships the Swift daemon. The sections below are the original research notes. See "Implementation notes" at the end for how the daemon avoids races.
+
 ---
 
 ## Why Swift for v2
@@ -78,9 +80,12 @@ runAppleScript("tell application \"Spotify\" to set sound volume to \(savedVolum
 - macOS 12+ deployment target
 - No third-party dependencies needed for v2 core functionality
 
-Build command:
+Build command (what `shall-not-pass.sh` runs, cached by source hash). The Info.plist, also embedded in `shall-not-pass.sh`, supplies `NSAppleEventsUsageDescription`. Without it, macOS may reject Apple Events from the binary without ever showing a prompt:
 ```bash
-swiftc -o shall-not-pass main.swift
+./shall-not-pass.sh --source > shall-not-pass.swift
+swiftc -O -o shall-not-pass shall-not-pass.swift \
+    -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker Info.plist
+codesign --force --sign - --identifier com.shall-not-pass shall-not-pass
 ```
 
 ---
@@ -123,3 +128,24 @@ Swift with `DistributedNotificationCenter`:
 - Total: 2–3 invocations per track change, which happens a few times per hour
 
 The real-world difference is minimal on modern hardware. The Swift rewrite is more about correctness and latency than measurable battery impact.
+
+---
+
+## Implementation notes
+
+**Notification payload** (checked on Spotify 1.2.98, macOS 26): `userInfo` includes `Track ID` (e.g. `spotify:track:…`, `spotify:ad:…`) and `Player State` (`Playing` / `Paused`). Detection uses these values directly, with no AppleScript call.
+
+**Serialization.** Every input (distributed notification, 2s poll timer, NSWorkspace launch/quit, SIGTERM/SIGINT through `DispatchSource`) is handled on the main thread. Transitions can never overlap.
+
+**State machine.** `idle → muted(savedVolume) → idle`, plus `userOverride`:
+- *Mute immediately* when an ad ID is seen. The saved volume is written to `~/Library/Application Support/shall-not-pass/state.json` before muting.
+- *Restore carefully.* Restore only for a non-empty, non-ad ID while `Playing`, then wait 150ms and check again through AppleScript. A new ad cancels a pending restore. This covers the gap Spotify can show between back-to-back ads.
+- *Respect the user.* If the volume is above 0 while muted, the user turned it up. Stop managing it until the ad ends.
+- *Survive crashes and quits.* On startup, a leftover `state.json` means the daemon died mid-ad, and the volume is restored once music plays. If Spotify quits mid-ad, the saved volume is kept, since Spotify remembers 0 across launches.
+
+**Volume quantization.** Spotify rounds the volume (set 85, read back 84). The daemon remembers the volume the user chose and ignores ±1 differences, so it doesn't lower the volume one step per ad.
+
+**Backup poll.** It runs every 2s while playing and every 10s while paused. It never calls AppleScript when Spotify isn't running, because `tell application` would launch it. It follows the same mute and restore rules, and logs when it catches a transition the notification missed.
+
+**Throttling.** `ProcessInfo.beginActivity` and `ProcessType=Interactive` in the LaunchAgent stop macOS from delaying the timer.
+

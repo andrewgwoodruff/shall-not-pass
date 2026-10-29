@@ -1,11 +1,35 @@
 #!/usr/bin/env bash
 # update.sh — pulls the latest version and restarts the daemon
+#
+# Works from either place:
+#   - a git clone (manual install): pulls, then reinstalls from the clone
+#   - ~/.local/share/shall-not-pass/update.sh: updates the same way this
+#     machine was installed, as recorded in install-info
 
 set -euo pipefail
 
+REPO_URL="https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main"
 INSTALL_DIR="$HOME/.local/share/shall-not-pass"
-PLIST_DEST="$HOME/Library/LaunchAgents/com.shall-not-pass.plist"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ "$SCRIPT_DIR" = "$INSTALL_DIR" ]; then
+    # Installed copy — update the same way this machine was installed
+    METHOD="$(sed -n 's/^method=//p' "$INSTALL_DIR/install-info" 2>/dev/null || true)"
+    SOURCE="$(sed -n 's/^source=//p' "$INSTALL_DIR/install-info" 2>/dev/null || true)"
+
+    if [ "$METHOD" = manual ] && [ -x "$SOURCE/update.sh" ]; then
+        echo "Manual install: updating from the clone at $SOURCE"
+        exec "$SOURCE/update.sh"
+    fi
+    if [ "$METHOD" = manual ]; then
+        echo "This machine was installed from a clone at $SOURCE, which no longer exists."
+        echo "Updating from GitHub instead."
+    else
+        echo "Quick install: updating from GitHub"
+    fi
+    curl -fsSL "$REPO_URL/install.sh" | bash
+    exit 0
+fi
 
 # Verify we're in a git repo
 if ! git -C "$SCRIPT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
@@ -18,21 +42,9 @@ fi
 echo "Pulling latest version..."
 git -C "$SCRIPT_DIR" pull
 
-echo "Restarting daemon..."
-launchctl unload "$PLIST_DEST" 2>/dev/null || true
-
-# Copy updated script
-mkdir -p "$INSTALL_DIR"
-cp "$SCRIPT_DIR/shall-not-pass.sh" "$INSTALL_DIR/shall-not-pass.sh"
-chmod +x "$INSTALL_DIR/shall-not-pass.sh"
-
-# Re-expand plist template (picks up any plist changes in the update)
-sed \
-    -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
-    -e "s|__USERNAME__|$(whoami)|g" \
-    "$SCRIPT_DIR/com.shall-not-pass.plist" > "$PLIST_DEST"
-
-launchctl load -w "$PLIST_DEST"
+# install.sh is read fresh from the updated clone, so changes to the install
+# process take effect on this same run.
+"$SCRIPT_DIR/install.sh"
 
 echo ""
 echo "shall-not-pass updated and restarted."

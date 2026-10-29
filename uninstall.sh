@@ -25,6 +25,11 @@ else
     echo "  Install directory not found — skipping."
 fi
 
+# Remove saved state (only present if an interruption was in progress) and
+# the cached build of the event-driven daemon
+rm -rf "$HOME/Library/Application Support/shall-not-pass"
+rm -rf "$HOME/Library/Caches/shall-not-pass"
+
 echo ""
 echo "shall-not-pass has been uninstalled."
 echo "(Log file at ~/Library/Logs/shall-not-pass.log was left in place.)"

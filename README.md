@@ -13,7 +13,7 @@ A macOS daemon that acts as an automatic volume control for your listening sessi
 
 You already have the right to turn down your volume whenever you want. `shall-not-pass` just does it for you automatically, so you don't have to be sitting at your desk with your hand on the knob.
 
-When it detects an audio interruption, it quietly lowers the app's volume. When your content resumes, it restores it, exactly as it was. Your system volume is never touched. No other apps are affected.
+When it detects an audio interruption, it lowers the app's volume within a fraction of a second. When your content resumes, it restores it, exactly as it was. Your system volume is never touched. No other apps are affected.
 
 **Current version:** Spotify on macOS. Support for other platforms and apps is [on the roadmap](ROADMAP.md).
 
@@ -23,7 +23,7 @@ When it detects an audio interruption, it quietly lowers the app's volume. When 
 
 - macOS 12 or later
 - Spotify desktop app
-- No other dependencies. Uses only `bash`, `osascript`, and `launchd`, which ship with every Mac.
+- Xcode Command Line Tools (`xcode-select --install`), recommended. The installer uses them to build the event-driven daemon, which mutes within about 100ms. Without them it installs the shell-script version instead, which needs nothing extra but polls every 2 seconds.
 
 ---
 
@@ -44,9 +44,9 @@ cd shall-not-pass
 ./install.sh
 ```
 
-Both options copy the script to `~/.local/share/shall-not-pass/` and register it as a LaunchAgent that starts automatically at login.
+Both options copy the daemon to `~/.local/share/shall-not-pass/` and register it as a LaunchAgent that starts automatically at login. `shall-not-pass.sh` is the whole program: the Swift daemon's source is embedded at the bottom of the file, and the script builds it on first run (cached in `~/Library/Caches/shall-not-pass/`). Without the Xcode tools, the same file runs the polling version.
 
-> **Required:** The installer will request Automation permission from macOS. This is not optional — without it, the daemon cannot control Spotify's volume. A dialog will appear during install; click OK. If Spotify is not open at install time, the prompt will appear the first time you open Spotify. If you ever dismiss it by accident: **System Settings -> Privacy & Security -> Automation** and enable your terminal app to control Spotify.
+> **Required:** macOS will ask for Automation permission: *"shall-not-pass" wants access to control "Spotify"*. Click OK. This is not optional — without it, the daemon cannot control Spotify's volume. If Spotify is not open at install time, the prompt will appear the first time you open Spotify. If you ever dismiss it by accident: **System Settings -> Privacy & Security -> Automation** and enable shall-not-pass (or your terminal app, for the shell-script version) to control Spotify. Because each build is ad-hoc signed, macOS may ask again after an update.
 
 ### Try before installing
 
@@ -62,17 +62,26 @@ Press `Ctrl-C` to stop. It will restore Spotify's volume before exiting.
 
 ## Updating
 
-**Quick install users** — re-run the same install command:
+On any machine, however it was installed:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
+~/.local/share/shall-not-pass/update.sh
 ```
 
-**Manual install users** — from the cloned repo directory:
+It updates the same way you installed: from GitHub for a quick install, or `git pull` in your clone for a manual install. These also still work:
+
+- **Quick install:** re-run the install command (`curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash`)
+- **Manual install:** `./update.sh` from your clone
+
+> **Installed before this version?** The installed `update.sh` doesn't exist yet. Use one of the two commands above once; after that, the installed one is there.
+
+### Which install method did this machine use?
 
 ```bash
-./update.sh
+cat ~/.local/share/shall-not-pass/install-info
 ```
+
+It shows `method=quick` or `method=manual` (plus the clone's path and commit). If the file is missing, the machine was installed before this was recorded. The installed files are identical either way, so the quick-install command updates it correctly regardless.
 
 Either way, this is also the first thing to try if a Spotify app update ever causes issues. A fix will ship and re-running this will apply it.
 
@@ -90,9 +99,9 @@ Stops the daemon and removes all installed files. No data is lost.
 
 ## Known limitations
 
-- **~2 second detection latency:** the poll interval means the first two seconds of an interruption may be audible before muting kicks in
+- **Near-instant, not instant:** Spotify announces an ad when it starts, not before, so a few milliseconds may reach your speakers. The shell-script fallback can let up to 2 seconds through.
 - **AppleScript breakage:** Spotify has occasionally broken AppleScript support in app updates. Run `./update.sh` if you notice it stop working.
-- **Automation permission required:** macOS requires explicit permission for your terminal to control Spotify. The installer requests this automatically. If it was denied or revoked, the daemon will log a clear error with instructions.
+- **Automation permission required:** macOS requires explicit permission for shall-not-pass to control Spotify. You'll be prompted automatically. If it was denied or revoked, the daemon will log a clear error with instructions.
 
 ---
 
@@ -111,7 +120,7 @@ launchctl list | grep shall-not-pass
 ```
 
 **3. Check Automation permission**
-System Settings -> Privacy & Security -> Automation -> your terminal app must have Spotify checked.
+System Settings -> Privacy & Security -> Automation -> shall-not-pass (or your terminal app, for the shell-script version) must have Spotify checked.
 
 **4. Restart the daemon**
 ```bash
@@ -141,7 +150,7 @@ curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main
 
 | Platform | Status |
 |----------|--------|
-| macOS (Spotify) | Supported (v1) |
+| macOS (Spotify) | Supported (v2) |
 | Windows | Planned |
 | Android | Planned |
 | iOS | Out of scope (see ROADMAP.md) |
