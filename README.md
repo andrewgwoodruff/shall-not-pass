@@ -62,18 +62,21 @@ Press `Ctrl-C` to stop. It will restore Spotify's volume before exiting.
 
 ## Updating
 
-On any machine, however it was installed:
+**Quick install users:** re-run the same install command. No clone needed:
 
 ```bash
-~/.local/share/shall-not-pass/update.sh
+curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
-It updates the same way you installed: from GitHub for a quick install, or `git pull` in your clone for a manual install. These also still work:
+**Manual install users:** from the cloned repo directory:
 
-- **Quick install:** re-run the install command (`curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash`)
-- **Manual install:** `./update.sh` from your clone
+```bash
+./update.sh
+```
 
-> **Installed before this version?** The installed `update.sh` doesn't exist yet. Use one of the two commands above once; after that, the installed one is there.
+**Shortcut for either:** `~/.local/share/shall-not-pass/update.sh` runs whichever of the two above matches how this machine was installed, so you don't need to remember the URL or where the clone is. It's installed next to `uninstall.sh` (installs from before this version don't have it until their next update).
+
+Updating is also the first thing to try if a Spotify app update ever causes issues. A fix will ship and re-running this will apply it.
 
 ### Which install method did this machine use?
 
@@ -81,9 +84,7 @@ It updates the same way you installed: from GitHub for a quick install, or `git 
 cat ~/.local/share/shall-not-pass/install-info
 ```
 
-It shows `method=quick` or `method=manual` (plus the clone's path and commit). If the file is missing, the machine was installed before this was recorded. The installed files are identical either way, so the quick-install command updates it correctly regardless.
-
-Either way, this is also the first thing to try if a Spotify app update ever causes issues. A fix will ship and re-running this will apply it.
+It shows `method=quick` or `method=manual` (plus the clone's path and commit). If the file is missing, the machine was installed before this was recorded. Both methods install identical files, so the quick-install command updates any machine correctly. After that it's recorded as a quick install.
 
 ---
 
