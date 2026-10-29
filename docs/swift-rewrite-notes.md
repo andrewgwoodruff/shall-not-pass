@@ -2,7 +2,7 @@
 
 This document captures the context needed to implement the v2 Swift rewrite of `shall-not-pass`. The v1 shell script works but polls every 2 seconds. Swift with `DistributedNotificationCenter` eliminates polling entirely — the script only runs when Spotify broadcasts a track change.
 
-> **Status:** implemented in [`shall-not-pass.swift`](../shall-not-pass.swift). The sections below are the original research notes. See "Implementation notes" at the end for how the daemon avoids races.
+> **Status:** implemented. The Swift source is embedded at the bottom of [`shall-not-pass.sh`](../shall-not-pass.sh) (`./shall-not-pass.sh --source` prints it). The script builds and `exec`s it, or falls back to the v1 polling loop. Embedding it means every installer and updater, including old ones that only copy `shall-not-pass.sh`, ships the Swift daemon. The sections below are the original research notes. See "Implementation notes" at the end for how the daemon avoids races.
 
 ---
 
@@ -80,8 +80,9 @@ runAppleScript("tell application \"Spotify\" to set sound volume to \(savedVolum
 - macOS 12+ deployment target
 - No third-party dependencies needed for v2 core functionality
 
-Build command (what `install.sh` runs). The embedded Info.plist supplies `NSAppleEventsUsageDescription`. Without it, macOS may reject Apple Events from the binary without ever showing a prompt:
+Build command (what `shall-not-pass.sh` runs, cached by source hash). The Info.plist, also embedded in `shall-not-pass.sh`, supplies `NSAppleEventsUsageDescription`. Without it, macOS may reject Apple Events from the binary without ever showing a prompt:
 ```bash
+./shall-not-pass.sh --source > shall-not-pass.swift
 swiftc -O -o shall-not-pass shall-not-pass.swift \
     -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker Info.plist
 codesign --force --sign - --identifier com.shall-not-pass shall-not-pass

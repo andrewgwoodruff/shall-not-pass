@@ -23,59 +23,61 @@ echo "Installing shall-not-pass..."
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$HOME/Library/LaunchAgents"
 
-SRC_DIR="$(mktemp -d)"
-trap 'rm -rf "$SRC_DIR"' EXIT
-
-SOURCES=(shall-not-pass.swift Info.plist shall-not-pass.sh uninstall.sh com.shall-not-pass.plist)
-if [ -f "$SCRIPT_DIR/shall-not-pass.swift" ]; then
-    # Running from a git clone — use local files
-    for f in "${SOURCES[@]}"; do cp "$SCRIPT_DIR/$f" "$SRC_DIR/$f"; done
-else
-    # Running via curl | bash — download files from GitHub
-    for f in "${SOURCES[@]}"; do curl -fsSL "$REPO_URL/$f" -o "$SRC_DIR/$f"; done
-fi
-
 # Unload any existing agent before replacing files, so reinstalls work cleanly
 launchctl unload "$PLIST_DEST" 2>/dev/null || true
 
-# Prefer the event-driven Swift daemon (near-instant muting). Fall back to the
-# polling shell script if the Xcode Command Line Tools aren't installed.
-# Check xcode-select first: /usr/bin/swiftc exists even without the tools and
-# would pop up an install dialog.
-BUILT=false
-if xcode-select -p >/dev/null 2>&1 && xcrun --find swiftc >/dev/null 2>&1; then
-    echo "Building..."
-    if xcrun swiftc -O -o "$SRC_DIR/shall-not-pass" "$SRC_DIR/shall-not-pass.swift" \
-        -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker "$SRC_DIR/Info.plist" \
-        && codesign --force --sign - --identifier com.shall-not-pass "$SRC_DIR/shall-not-pass"; then
-        BUILT=true
-    else
-        echo "Build failed. Falling back to the shell script version."
-    fi
+if [ -f "$SCRIPT_DIR/shall-not-pass.sh" ]; then
+    # Running from a git clone — use local files
+    cp "$SCRIPT_DIR/shall-not-pass.sh" "$INSTALL_DIR/shall-not-pass.sh"
+    cp "$SCRIPT_DIR/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
+    cp "$SCRIPT_DIR/update.sh" "$INSTALL_DIR/update.sh"
+    sed \
+        -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
+        -e "s|__USERNAME__|$(whoami)|g" \
+        "$SCRIPT_DIR/com.shall-not-pass.plist" > "$PLIST_DEST"
+    METHOD=manual
+    SOURCE="$SCRIPT_DIR"
+    COMMIT="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 else
-    echo "Xcode Command Line Tools not found. Installing the shell script version (2s polling)."
-    echo "For near-instant muting, run 'xcode-select --install' and re-run this installer."
+    # Running via curl | bash — download files from GitHub
+    curl -fsSL "$REPO_URL/shall-not-pass.sh" -o "$INSTALL_DIR/shall-not-pass.sh"
+    curl -fsSL "$REPO_URL/uninstall.sh" -o "$INSTALL_DIR/uninstall.sh"
+    curl -fsSL "$REPO_URL/update.sh" -o "$INSTALL_DIR/update.sh"
+    curl -fsSL "$REPO_URL/com.shall-not-pass.plist" | \
+        sed \
+            -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
+            -e "s|__USERNAME__|$(whoami)|g" \
+        > "$PLIST_DEST"
+    METHOD=quick
+    SOURCE="$REPO_URL"
+    COMMIT=unknown
 fi
 
-if [ "$BUILT" = true ]; then
-    mv -f "$SRC_DIR/shall-not-pass" "$INSTALL_DIR/shall-not-pass"
-else
-    # The script has a shebang, so the LaunchAgent runs it the same way
-    cp "$SRC_DIR/shall-not-pass.sh" "$INSTALL_DIR/shall-not-pass"
-fi
-rm -f "$INSTALL_DIR/shall-not-pass.sh"   # left over from older versions
-cp "$SRC_DIR/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
-chmod +x "$INSTALL_DIR/shall-not-pass" "$INSTALL_DIR/uninstall.sh"
+chmod +x "$INSTALL_DIR/shall-not-pass.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/update.sh"
 
-sed \
-    -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
-    -e "s|__USERNAME__|$(whoami)|g" \
-    "$SRC_DIR/com.shall-not-pass.plist" > "$PLIST_DEST"
+# Record how this machine was installed, so update.sh knows where to update from
+cat > "$INSTALL_DIR/install-info" <<EOF
+method=$METHOD
+source=$SOURCE
+commit=$COMMIT
+installed=$(date '+%Y-%m-%d %H:%M:%S')
+EOF
+
+# Build the event-driven daemon now, so problems show up here instead of only
+# in the log. (The daemon would otherwise build itself on first start.)
+echo ""
+if bash "$INSTALL_DIR/shall-not-pass.sh" --build; then
+    SWIFT=true
+    echo "Built the event-driven daemon (near-instant muting)."
+else
+    SWIFT=false
+    echo "Installing the shell version instead (2s polling)."
+fi
 
 echo ""
-if [ "$BUILT" = true ]; then
-    # The daemon controls Spotify as itself, so it asks for permission itself
-    # once it starts (or the first time Spotify is open).
+if [ "$SWIFT" = true ]; then
+    # The daemon controls Spotify as itself, so macOS asks on its behalf once
+    # it starts (or the first time Spotify is open).
     echo "Automation permission is required for shall-not-pass to work."
     echo "macOS will ask: \"shall-not-pass\" wants access to control \"Spotify\". Click OK."
     echo "If Spotify is not open, the prompt will appear the first time you open it."
@@ -100,10 +102,11 @@ else
     fi
 fi
 
+# Load the agent
 launchctl load -w "$PLIST_DEST"
 
 echo ""
 echo "  Log:       tail -f $LOG_FILE"
 echo "  Status:    launchctl list | grep shall-not-pass"
-echo "  Update:    curl -fsSL $REPO_URL/install.sh | bash"
+echo "  Update:    $INSTALL_DIR/update.sh"
 echo "  Uninstall: $INSTALL_DIR/uninstall.sh"

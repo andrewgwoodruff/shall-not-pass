@@ -40,11 +40,11 @@ curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main
 ```bash
 git clone https://github.com/andrewgwoodruff/shall-not-pass.git
 cd shall-not-pass
-# inspect shall-not-pass.swift and install.sh, then:
+# inspect shall-not-pass.sh and install.sh, then:
 ./install.sh
 ```
 
-Both options build the daemon into `~/.local/share/shall-not-pass/` and register it as a LaunchAgent that starts automatically at login.
+Both options copy the daemon to `~/.local/share/shall-not-pass/` and register it as a LaunchAgent that starts automatically at login. `shall-not-pass.sh` is the whole program: the Swift daemon's source is embedded at the bottom of the file, and the script builds it on first run (cached in `~/Library/Caches/shall-not-pass/`). Without the Xcode tools, the same file runs the polling version.
 
 > **Required:** macOS will ask for Automation permission: *"shall-not-pass" wants access to control "Spotify"*. Click OK. This is not optional — without it, the daemon cannot control Spotify's volume. If Spotify is not open at install time, the prompt will appear the first time you open Spotify. If you ever dismiss it by accident: **System Settings -> Privacy & Security -> Automation** and enable shall-not-pass (or your terminal app, for the shell-script version) to control Spotify. Because each build is ad-hoc signed, macOS may ask again after an update.
 
@@ -53,8 +53,6 @@ Both options build the daemon into `~/.local/share/shall-not-pass/` and register
 If you used the manual install, you can run it in the foreground first to see what it does:
 
 ```bash
-swiftc -O -o shall-not-pass shall-not-pass.swift && ./shall-not-pass
-# or, without Xcode tools:
 bash shall-not-pass.sh
 ```
 
@@ -64,17 +62,26 @@ Press `Ctrl-C` to stop. It will restore Spotify's volume before exiting.
 
 ## Updating
 
-**Quick install users** — re-run the same install command:
+On any machine, however it was installed:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
+~/.local/share/shall-not-pass/update.sh
 ```
 
-**Manual install users** — from the cloned repo directory:
+It updates the same way you installed: from GitHub for a quick install, or `git pull` in your clone for a manual install. These also still work:
+
+- **Quick install:** re-run the install command (`curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash`)
+- **Manual install:** `./update.sh` from your clone
+
+> **Installed before this version?** The installed `update.sh` doesn't exist yet. Use one of the two commands above once; after that, the installed one is there.
+
+### Which install method did this machine use?
 
 ```bash
-./update.sh
+cat ~/.local/share/shall-not-pass/install-info
 ```
+
+It shows `method=quick` or `method=manual` (plus the clone's path and commit). If the file is missing, the machine was installed before this was recorded. The installed files are identical either way, so the quick-install command updates it correctly regardless.
 
 Either way, this is also the first thing to try if a Spotify app update ever causes issues. A fix will ship and re-running this will apply it.
 

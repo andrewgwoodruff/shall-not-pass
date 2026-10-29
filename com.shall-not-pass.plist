@@ -7,7 +7,8 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>__INSTALL_DIR__/shall-not-pass</string>
+        <string>/bin/bash</string>
+        <string>__INSTALL_DIR__/shall-not-pass.sh</string>
     </array>
 
     <key>EnvironmentVariables</key>
