@@ -108,5 +108,9 @@ launchctl load -w "$PLIST_DEST"
 echo ""
 echo "  Log:       tail -f $LOG_FILE"
 echo "  Status:    launchctl list | grep shall-not-pass"
-echo "  Update:    $INSTALL_DIR/update.sh"
+if [ "$METHOD" = quick ]; then
+    echo "  Update:    curl -fsSL $REPO_URL/install.sh | bash"
+else
+    echo "  Update:    $SCRIPT_DIR/update.sh"
+fi
 echo "  Uninstall: $INSTALL_DIR/uninstall.sh"
