@@ -68,7 +68,7 @@ EOF
 echo ""
 if bash "$INSTALL_DIR/shall-not-pass.sh" --build; then
     SWIFT=true
-    echo "Built the event-driven daemon (near-instant muting)."
+    echo "Built the fast daemon (mutes within about 100ms)."
 else
     SWIFT=false
     echo "Installing the shell version instead (2s polling)."

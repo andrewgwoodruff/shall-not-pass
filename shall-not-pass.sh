@@ -202,10 +202,16 @@ __SWIFT__
 // shall-not-pass — silences Spotify ads without touching system volume
 // https://github.com/andrewgwoodruff/shall-not-pass
 //
-// Event-driven: reacts to Spotify's PlaybackStateChanged broadcast within
-// milliseconds, with a 2-second AppleScript poll as a safety net.
+// How ads are detected: Spotify broadcasts PlaybackStateChanged when music
+// resumes after an ad, but NOT when an ad starts. Ads only start where a track
+// ends, so the daemon predicts each track's end (from its duration and
+// position) and checks the current track every 50ms around that moment. A
+// 2-second poll covers everything else (skips, seeks, missed events).
 //
-// Everything runs on the main thread (notifications, poll timer, launch/quit
+// Each Apple Event to Spotify takes about one frame (~17ms), so the hot path
+// reads a single property.
+//
+// Everything runs on the main thread (notifications, timers, launch/quit
 // events, signals), so state transitions are strictly serialized.
 
 import AppKit
@@ -217,7 +223,10 @@ let spotifyBundleID = "com.spotify.client"
 let playbackNotification = Notification.Name("com.spotify.client.PlaybackStateChanged")
 let pollInterval: TimeInterval = 2
 let pausedPollEvery = 5              // while paused, only poll every 5th tick (10s)
-let restoreVerifyDelay: TimeInterval = 0.15
+let trackEndInterval: TimeInterval = 0.05   // fast checks around a predicted track end
+let trackEndLead: TimeInterval = 0.75       // start this long before the predicted end
+let trackEndGrace: TimeInterval = 2.5       // and give up this long after it
+let debug = ProcessInfo.processInfo.environment["SHALL_NOT_PASS_DEBUG"] == "1"
 let defaultVolume = 50
 
 let stateDir = FileManager.default.homeDirectoryForCurrentUser
@@ -236,6 +245,7 @@ struct Snapshot {
     let isPlaying: Bool
     let trackID: String
     let volume: Int
+    let remaining: TimeInterval?   // seconds left in the current track
 }
 
 enum ScriptError: Error {
@@ -289,18 +299,47 @@ final class Spotify {
         run("""
         tell application "Spotify"
             set trackURL to ""
+            set trackLength to 0
             try
                 set trackURL to spotify url of current track
+                set trackLength to duration of current track
             end try
-            return {player state as string, trackURL, sound volume}
+            return {player state as string, trackURL, sound volume, player position, trackLength}
         end tell
         """).map { list in
-            Snapshot(
+            let position = list.atIndex(4)?.doubleValue ?? 0
+            let durationMs = list.atIndex(5)?.doubleValue ?? 0
+            return Snapshot(
                 isPlaying: list.atIndex(1)?.stringValue == "playing",
                 trackID: list.atIndex(2)?.stringValue ?? "",
-                volume: Int(list.atIndex(3)?.int32Value ?? -1)
+                volume: Int(list.atIndex(3)?.int32Value ?? -1),
+                remaining: durationMs > 0 ? durationMs / 1000 - position : nil
             )
         }
+    }
+
+    // One Apple Event (~17ms): the hot path around track ends.
+    func trackID() -> Result<String, ScriptError> {
+        run("""
+        tell application "Spotify"
+            try
+                return spotify url of current track
+            end try
+            return ""
+        end tell
+        """).map { $0.stringValue ?? "" }
+    }
+
+    // Reads the volume and mutes in one script, so muting doesn't wait for
+    // a separate round trip. Returns the volume from before muting.
+    func muteReturningVolume() -> Result<Int, ScriptError> {
+        run("""
+        tell application "Spotify"
+            set previous to sound volume
+            set sound volume to 0
+            return previous
+        end tell
+        """).map { Int($0.int32Value) }
     }
 
     func volume() -> Result<Int, ScriptError> {
@@ -347,7 +386,7 @@ enum Mode: Equatable {
 }
 
 enum Source: String {
-    case notification, poll, startup
+    case notification, trackEnd, poll, startup
 }
 
 func isAd(_ trackID: String) -> Bool { trackID.hasPrefix("spotify:ad:") }
@@ -362,6 +401,9 @@ final class Suppressor {
     private var pendingRestore: DispatchWorkItem?
     private var permissionWarned = false
     private var pollTick = 0
+    private var trackEndTimer: Timer?    // fires shortly before the predicted end
+    private var trackEndWatch: Timer?    // fast checks around the end
+    private var predictedEnd: Date?
 
     init() {
         if let persisted = loadPersisted() {
@@ -419,6 +461,12 @@ final class Suppressor {
         let state = info["Player State"] as? String ?? ""
         lastKnownPlaying = state == "Playing"
         evaluate(trackID: trackID, isPlaying: lastKnownPlaying, volume: nil, source: .notification)
+
+        var remaining: TimeInterval?
+        if let durationMs = info["Duration"] as? Double, durationMs > 0 {
+            remaining = durationMs / 1000 - (info["Playback Position"] as? Double ?? 0)
+        }
+        planTrackEnd(trackID: trackID, isPlaying: lastKnownPlaying, remaining: remaining)
     }
 
     private func poll(force: Bool = false, source: Source = .poll) {
@@ -434,9 +482,69 @@ final class Suppressor {
             lastKnownPlaying = snap.isPlaying
             if mode == .idle { noteVolume(snap.volume) }
             evaluate(trackID: snap.trackID, isPlaying: snap.isPlaying, volume: snap.volume, source: source)
+            planTrackEnd(trackID: snap.trackID, isPlaying: snap.isPlaying, remaining: snap.remaining)
         case .failure(let error):
             handle(error)
         }
+    }
+
+    // MARK: Track-end watch
+
+    // Re-planned on every poll and notification, so seeks, skips and pauses
+    // correct the prediction within 2 seconds.
+    private func planTrackEnd(trackID: String, isPlaying: Bool, remaining: TimeInterval?) {
+        trackEndTimer?.invalidate()
+        trackEndTimer = nil
+        // Only needed while music plays: ad -> ad needs nothing, and ad ->
+        // music is announced by a notification.
+        guard isPlaying, mode == .idle, !trackID.isEmpty, !isAd(trackID),
+              let remaining = remaining, remaining > 0 else { return }
+        if trackEndWatch != nil { return }
+
+        predictedEnd = Date().addingTimeInterval(remaining)
+        let timer = Timer(timeInterval: max(0, remaining - trackEndLead), repeats: false) { [weak self] _ in
+            self?.watchTrackEnd(from: trackID)
+        }
+        timer.tolerance = 0.02
+        RunLoop.main.add(timer, forMode: .common)
+        trackEndTimer = timer
+    }
+
+    private func watchTrackEnd(from trackID: String) {
+        trackEndTimer = nil
+        let giveUp = (predictedEnd ?? Date()).addingTimeInterval(trackEndGrace)
+        if debug { log("debug: watching for the end of \(trackID)") }
+
+        let watch = Timer(timeInterval: trackEndInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            switch self.spotify.trackID() {
+            case .success(let current) where current != trackID && !current.isEmpty:
+                self.stopTrackEndWatch()
+                if debug, let end = self.predictedEnd {
+                    log("debug: track changed \(Int(Date().timeIntervalSince(end) * 1000))ms after predicted end -> \(current)")
+                }
+                // The new track is playing (it just advanced); anything else
+                // is re-checked by the next poll.
+                self.evaluate(trackID: current, isPlaying: true, volume: nil, source: .trackEnd)
+            case .failure(let error):
+                self.stopTrackEndWatch()
+                self.handle(error)
+            default:
+                if Date() > giveUp {
+                    // Repeat-one, a pause, or a bad prediction; the poll takes over.
+                    if debug { log("debug: no track change by predicted end + \(trackEndGrace)s") }
+                    self.stopTrackEndWatch()
+                }
+            }
+        }
+        watch.tolerance = 0.005
+        RunLoop.main.add(watch, forMode: .common)
+        trackEndWatch = watch
+    }
+
+    private func stopTrackEndWatch() {
+        trackEndWatch?.invalidate()
+        trackEndWatch = nil
     }
 
     private func noteVolume(_ volume: Int) {
@@ -484,35 +592,46 @@ final class Suppressor {
     }
 
     private func mute(source: Source) {
+        stopTrackEndWatch()
+        // Persist the best-known volume first, so a crash between here and
+        // the mute can't lose it; corrected below once the real value is read.
+        let known = userVolume ?? defaultVolume
+        savePersisted(PersistedState(savedVolume: known))
+
         let current: Int
-        switch spotify.volume() {
+        switch spotify.muteReturningVolume() {
         case .success(let volume): current = volume
-        case .failure(let error): handle(error); return
-        }
-
-        noteVolume(current)
-        let saved = userVolume ?? defaultVolume
-        if current <= 0 {
-            log("Volume was already 0 (possible stale mute). Will restore to \(saved).")
-        }
-
-        // Persist first, so a crash between here and setVolume can't lose it.
-        savePersisted(PersistedState(savedVolume: saved))
-        if case .failure(let error) = spotify.setVolume(0) {
+        case .failure(let error):
             handle(error)
             clearPersisted()
             return
         }
+
+        noteVolume(current)
+        let saved = userVolume ?? defaultVolume
+        if saved != known { savePersisted(PersistedState(savedVolume: saved)) }
+        if current <= 0 {
+            log("Volume was already 0 (possible stale mute). Will restore to \(saved).")
+        }
         mode = .muted(savedVolume: saved)
-        if source == .poll {
-            log("Interruption detected by backup poll (notification was missed). Muted. (saved volume: \(saved))")
-        } else {
+
+        switch source {
+        case .trackEnd:
+            if let end = predictedEnd {
+                let ms = max(0, Int(Date().timeIntervalSince(end) * 1000))
+                log("Interruption detected at track end. Muted within \(ms)ms. (saved volume: \(saved))")
+            } else {
+                log("Interruption detected at track end. Muted. (saved volume: \(saved))")
+            }
+        case .poll:
+            log("Interruption detected by the 2s check (not at a track end). Muted. (saved volume: \(saved))")
+        case .notification, .startup:
             log("Interruption detected. Muted. (saved volume: \(saved))")
         }
     }
 
-    // Mute is instant; restore waits briefly and re-checks, because Spotify can
-    // emit a non-ad state between back-to-back ads.
+    // Restores right away, but re-checks the current track first so a stale
+    // or out-of-order event can't unmute an ad.
     private func scheduleRestore(source: Source) {
         let work = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
@@ -520,7 +639,7 @@ final class Suppressor {
             self.verifyAndRestore(source: source)
         }
         pendingRestore = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + restoreVerifyDelay, execute: work)
+        DispatchQueue.main.async(execute: work)
     }
 
     private func cancelPendingRestore() {
@@ -530,9 +649,9 @@ final class Suppressor {
 
     private func verifyAndRestore(source: Source) {
         guard case .muted(let saved) = mode else { return }
-        switch spotify.snapshot() {
-        case .success(let snap):
-            guard snap.isPlaying, !snap.trackID.isEmpty, !isAd(snap.trackID) else { return }
+        switch spotify.trackID() {
+        case .success(let current):
+            guard !current.isEmpty, !isAd(current) else { return }
             restore(to: saved, source: source)
         case .failure(let error):
             handle(error)

@@ -23,7 +23,7 @@ When it detects an audio interruption, it lowers the app's volume within a fract
 
 - macOS 12 or later
 - Spotify desktop app
-- Xcode Command Line Tools (`xcode-select --install`), recommended. The installer uses them to build the event-driven daemon, which mutes within about 100ms. Without them it installs the shell-script version instead, which needs nothing extra but polls every 2 seconds.
+- Xcode Command Line Tools (`xcode-select --install`), recommended. The installer uses them to build the faster daemon, which mutes within about a tenth of a second when an ad starts at the end of a track (2 seconds at most otherwise). Without them it installs the shell-script version instead, which needs nothing extra but polls every 2 seconds.
 
 ---
 
@@ -100,7 +100,7 @@ Stops the daemon and removes all installed files. No data is lost.
 
 ## Known limitations
 
-- **Near-instant, not instant:** Spotify announces an ad when it starts, not before, so a few milliseconds may reach your speakers. The shell-script fallback can let up to 2 seconds through.
+- **Fast, not instant:** up to about a tenth of a second of an ad may reach your speakers before it's muted, or up to 2 seconds if the ad starts somewhere other than the end of a track (e.g. right after you skip). The shell-script fallback can let up to 2 seconds through. See [How it works](docs/how-it-works.md).
 - **AppleScript breakage:** Spotify has occasionally broken AppleScript support in app updates. Run `./update.sh` if you notice it stop working.
 - **Automation permission required:** macOS requires explicit permission for shall-not-pass to control Spotify. You'll be prompted automatically. If it was denied or revoked, the daemon will log a clear error with instructions.
 
