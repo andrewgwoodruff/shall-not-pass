@@ -1,0 +1,49 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Before filing, please try updating first. Many issues are already fixed:
+        `curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash`
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: Apple menu → About This Mac
+      placeholder: e.g. macOS 15.3 (Apple Silicon)
+    validations:
+      required: true
+  - type: input
+    id: spotify
+    attributes:
+      label: Spotify version
+      description: Spotify menu → About Spotify
+      placeholder: e.g. 1.2.98.301
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which version is running?
+      description: The first line of the log says "event-driven" or "poll interval".
+      options:
+        - Event-driven (Swift)
+        - Shell fallback (polling)
+        - Not sure
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: Output of `tail -50 ~/Library/Logs/shall-not-pass.log`
+      render: text
+    validations:
+      required: true

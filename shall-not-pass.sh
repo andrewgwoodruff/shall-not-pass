@@ -284,8 +284,16 @@ final class Spotify {
     }
 
     func snapshot() -> Result<Snapshot, ScriptError> {
+        // With nothing loaded (e.g. just after launch), `current track`
+        // raises -1728; report an empty track ID instead of an error.
         run("""
-        tell application "Spotify" to return {player state as string, spotify url of current track, sound volume}
+        tell application "Spotify"
+            set trackURL to ""
+            try
+                set trackURL to spotify url of current track
+            end try
+            return {player state as string, trackURL, sound volume}
+        end tell
         """).map { list in
             Snapshot(
                 isPlaying: list.atIndex(1)?.stringValue == "playing",
