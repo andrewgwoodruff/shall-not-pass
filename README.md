@@ -3,158 +3,64 @@
 *Stands watch so you don't have to.*
 *For a life with fewer interruptions.*
 
+[![CI](https://github.com/andrewgwoodruff/shall-not-pass/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewgwoodruff/shall-not-pass/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![macOS 12+](https://img.shields.io/badge/macOS-12%2B-lightgrey)
 
-A macOS daemon that acts as an automatic volume control for your listening session. It steps in when you'd step in yourself, and steps back out when you wouldn't.
+An over-engineered remote control for Spotify on your Mac. When an interruption starts, it turns Spotify's volume down within about a tenth of a second. When your music comes back, it puts the volume back exactly where you had it.
 
----
-
-## What it does
-
-You already have the right to turn down your volume whenever you want. `shall-not-pass` just does it for you automatically, so you don't have to be sitting at your desk with your hand on the knob.
-
-When it detects an audio interruption, it lowers the app's volume within a fraction of a second. When your content resumes, it restores it, exactly as it was. Your system volume is never touched. No other apps are affected.
-
-**Current version:** Spotify on macOS. Support for other platforms and apps is [on the roadmap](ROADMAP.md).
-
----
-
-## Requirements
-
-- macOS 12 or later
-- Spotify desktop app
-- Xcode Command Line Tools (`xcode-select --install`), recommended. The installer uses them to build the faster daemon, which mutes within about a tenth of a second when an interruption starts at the end of a track (2 seconds at most otherwise). Without them it installs the shell-script version instead, which needs nothing extra but polls every 2 seconds.
+![Spotify's volume slider drops to zero when an interruption starts and comes back with the music](docs/demo.gif)
 
 ---
 
 ## Install
 
-**Quick install** — paste this in Terminal and it handles everything:
+Paste this in Terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
-**Manual install** — if you'd prefer to read the code before running it:
+macOS will ask: *"shall-not-pass" wants access to control "Spotify"*. Click **OK**. That permission is how it moves Spotify's volume slider; without it, it can't do anything. (If Spotify isn't open, the prompt appears the first time you open it.)
+
+That's it. It starts automatically at login, and you can forget it's there.
+
+<details>
+<summary>Prefer to read the code first?</summary>
 
 ```bash
 git clone https://github.com/andrewgwoodruff/shall-not-pass.git
 cd shall-not-pass
-# inspect shall-not-pass.sh and install.sh, then:
+# read shall-not-pass.sh and install.sh, then:
 ./install.sh
 ```
 
-Both options copy the daemon to `~/.local/share/shall-not-pass/` and register it as a LaunchAgent that starts automatically at login. `shall-not-pass.sh` is the whole program: the Swift daemon's source is embedded at the bottom of the file, and the script builds it on first run (cached in `~/Library/Caches/shall-not-pass/`). Without the Xcode tools, the same file runs the polling version.
+To watch what it does before installing, run `bash shall-not-pass.sh` and press `Ctrl-C` to stop. It puts Spotify's volume back before exiting.
 
-> **Required:** macOS will ask for Automation permission: *"shall-not-pass" wants access to control "Spotify"*. Click OK. This is not optional — without it, the daemon cannot control Spotify's volume. If Spotify is not open at install time, the prompt will appear the first time you open Spotify. If you ever dismiss it by accident: **System Settings -> Privacy & Security -> Automation** and enable shall-not-pass (or your terminal app, for the shell-script version) to control Spotify. Because each build is ad-hoc signed, macOS may ask again after an update.
+</details>
 
-### Try before installing
+**Requirements:** macOS 12 or later and the Spotify desktop app. The [Xcode Command Line Tools](https://developer.apple.com/xcode/resources/) (`xcode-select --install`) are recommended. With them, the installer builds the fast version; without them, it installs a simpler version that checks every 2 seconds.
 
-If you used the manual install, you can run it in the foreground first to see what it does:
-
-```bash
-bash shall-not-pass.sh
-```
-
-Press `Ctrl-C` to stop. It will restore Spotify's volume before exiting.
+**Last tested:** Spotify 1.3.6 on macOS 26.6 (Apple Silicon).
 
 ---
 
-## Updating
+## What it touches, and what it doesn't
 
-**Quick install users:** re-run the same install command. No clone needed:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
-```
-
-**Manual install users:** from the cloned repo directory:
-
-```bash
-./update.sh
-```
-
-**Shortcut for either:** `~/.local/share/shall-not-pass/update.sh` runs whichever of the two above matches how this machine was installed, so you don't need to remember the URL or where the clone is. It's installed next to `uninstall.sh` (installs from before this version don't have it until their next update).
-
-Updating is also the first thing to try if a Spotify app update ever causes issues. A fix will ship and re-running this will apply it.
-
-### Which install method did this machine use?
-
-```bash
-cat ~/.local/share/shall-not-pass/install-info
-```
-
-It shows `method=quick` or `method=manual` (plus the clone's path and commit). If the file is missing, the machine was installed before this was recorded. Both methods install identical files, so the quick-install command updates any machine correctly. After that it's recorded as a quick install.
+- **Changes:** Spotify's own volume slider, and nothing else.
+- **Doesn't touch:** your system volume, other apps, Spotify's app files, or Spotify's network traffic. It has no network access of its own.
+- **Needs:** no admin password and no `sudo`. Everything installs into your home folder.
+- **You stay in charge:** move the slider yourself during an interruption and it backs off until the interruption ends.
+- **Can't get stuck at zero:** your volume is saved to disk before it's lowered, so a crash, restart, or Spotify quitting can't lose it.
+- **All of it is one file:** [`shall-not-pass.sh`](shall-not-pass.sh). The Swift source is at the bottom.
 
 ---
 
-## Uninstall
+## How it works
 
-```bash
-~/.local/share/shall-not-pass/uninstall.sh
-```
+Spotify announces when your music starts, pauses, or comes back, but not when an interruption starts. So `shall-not-pass` predicts when each song will end, from its length and position, and checks Spotify every 50ms around that moment. In testing, interruptions started within 35ms of the predicted end and were muted within 57–82ms. A check every 2 seconds catches anything else.
 
-Stops the daemon and removes all installed files. No data is lost.
-
----
-
-## Known limitations
-
-- **Fast, not instant:** up to about a tenth of a second of an interruption may reach your speakers before it's muted, or up to 2 seconds if it starts somewhere other than the end of a track (e.g. right after you skip). The shell-script fallback can let up to 2 seconds through. See [How it works](docs/how-it-works.md).
-- **AppleScript breakage:** Spotify has occasionally broken AppleScript support in app updates. Run `./update.sh` if you notice it stop working.
-- **Automation permission required:** macOS requires explicit permission for shall-not-pass to control Spotify. You'll be prompted automatically. If it was denied or revoked, the daemon will log a clear error with instructions.
-
----
-
-## Troubleshooting
-
-Try these in order:
-
-**1. Check the log:** is the daemon running and what is it seeing?
-```bash
-tail -f ~/Library/Logs/shall-not-pass.log
-```
-
-**2. Check if the daemon is loaded** (should show a PID in the first column)
-```bash
-launchctl list | grep shall-not-pass
-```
-
-**3. Check Automation permission**
-System Settings -> Privacy & Security -> Automation -> shall-not-pass (or your terminal app, for the shell-script version) must have Spotify checked.
-
-**4. Restart the daemon**
-```bash
-launchctl unload ~/Library/LaunchAgents/com.shall-not-pass.plist
-launchctl load -w ~/Library/LaunchAgents/com.shall-not-pass.plist
-```
-
-**5. Update first:** many issues are fixed in newer versions
-```bash
-# Quick install users:
-curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
-# Manual install users (from repo dir):
-./update.sh
-```
-
-**6. Nuke and reinstall:** the clean-slate fix, safe to run anytime
-```bash
-~/.local/share/shall-not-pass/uninstall.sh
-curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
-```
-
-**7. Still broken?** [Open an issue](https://github.com/andrewgwoodruff/shall-not-pass/issues) and include the output of `tail -50 ~/Library/Logs/shall-not-pass.log`.
-
----
-
-## Platform support
-
-| Platform | Status |
-|----------|--------|
-| macOS (Spotify) | Supported (v2) |
-| Windows | Planned |
-| Android | Planned |
-| iOS | Out of scope (see ROADMAP.md) |
+The full story, with measurements: [How it works](docs/how-it-works.md).
 
 ---
 
@@ -163,10 +69,48 @@ curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main
 **Is this a Spotify ad-blocker?**
 No. It doesn't block, skip, or modify anything, and it doesn't touch Spotify's app or its network traffic. Everything Spotify plays, plays in full; `shall-not-pass` only moves Spotify's own volume slider down and back up. Unlike `shall-not-pass`, which is an over-engineered remote control focused on changing your volume when you don't want to listen to something, Spotify Premium removes ads completely for you and is a viable option for anyone who wants to completely remove ads from their Spotify experience.
 
+**Does it change my Mac's volume?**
+No. Only Spotify's own slider moves. Calls, videos, and everything else stay exactly as loud as they were.
+
+**Will it open Spotify on its own?**
+No. It only talks to Spotify while Spotify is already running.
+
+**Is it instant?**
+Close. Most interruptions start at the end of a song, and those are silenced within about a tenth of a second. One that starts somewhere else (say, right after you skip) takes up to 2 seconds.
+
+**Does it use much battery?**
+No. It sleeps until Spotify sends an event or a song is about to end, plus one quick check every 2 seconds while music plays (every 10 while paused).
+
+**Windows? Android?**
+macOS only for now. Other platforms are [ideas on the roadmap](ROADMAP.md), not promises.
+
+---
+
+## Update and uninstall
+
+```bash
+~/.local/share/shall-not-pass/update.sh      # update (works for either install method)
+~/.local/share/shall-not-pass/uninstall.sh   # remove it (keeps the log)
+```
+
+Re-running the install command also updates. If it ever stops working, especially after a Spotify update, update first. Details, including how to tell which install method a machine used: [Troubleshooting](docs/troubleshooting.md).
+
+---
+
+## Troubleshooting
+
+Check the log first:
+
+```bash
+tail -f ~/Library/Logs/shall-not-pass.log
+```
+
+Then see [Troubleshooting](docs/troubleshooting.md) for the step-by-step list. Still stuck? [Open an issue](https://github.com/andrewgwoodruff/shall-not-pass/issues/new/choose).
+
 ---
 
 ## Legal
 
 This tool automates a volume adjustment you are fully entitled to make yourself. It does not modify any application, bypass any technical protection, or access any system you are not authorized to use.
 
-Personal-use tool. Use at your own discretion. Not affiliated with or endorsed by Spotify.
+Personal-use tool. Use at your own discretion. Not affiliated with or endorsed by Spotify. [MIT License](LICENSE).

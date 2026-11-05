@@ -1,6 +1,6 @@
 # Roadmap
 
-> Last updated: 2026-03-12
+> Last updated: 2026-11-05
 
 ---
 
@@ -20,13 +20,13 @@ Mute Spotify's audio stream directly instead of moving its volume slider. There 
 
 ---
 
-## Coming: Windows
+## Idea: Windows
 
 Per-process volume control so only Spotify is silenced — your other audio is never affected.
 
 ---
 
-## Coming: Android
+## Idea: Android
 
 No root required. Uses Android's notification system to detect track changes.
 

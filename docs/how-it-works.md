@@ -2,7 +2,7 @@
 
 `shall-not-pass` watches the Spotify desktop app through its public AppleScript interface and the notifications Spotify broadcasts to macOS. It never modifies Spotify, never touches the network, and needs no admin rights. The only thing it changes is Spotify's own volume slider.
 
-Measurements below are from Spotify 1.2.98 on macOS 26.6 (Apple Silicon).
+Measurements below are from Spotify 1.2.98 and 1.3.6 on macOS 26.6 (Apple Silicon).
 
 ---
 
