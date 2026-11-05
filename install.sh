@@ -9,8 +9,13 @@ INSTALL_DIR="$HOME/.local/share/shall-not-pass"
 PLIST_DEST="$HOME/Library/LaunchAgents/com.shall-not-pass.plist"
 LOG_FILE="$HOME/Library/Logs/shall-not-pass.log"
 
-# BASH_SOURCE is empty when piped via curl | bash
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-}")" 2>/dev/null && pwd || echo "")"
+# BASH_SOURCE is empty when piped via curl | bash. Only a script run from a
+# file has a directory of its own; otherwise dirname "" would be the current
+# directory, and any shall-not-pass.sh there would be installed instead.
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
     echo "Error: shall-not-pass currently supports macOS only."

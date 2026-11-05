@@ -50,3 +50,9 @@ jobs:
 
           HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" "$dir/uninstall.sh"
           test ! -e "$dir"
+
+          # Piped like curl | bash, from inside the repo: it must download from
+          # GitHub, not install whatever shall-not-pass.sh is in the current folder.
+          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" bash < install.sh
+          grep -q "method=quick" "$dir/install-info"
+          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" "$dir/uninstall.sh"
