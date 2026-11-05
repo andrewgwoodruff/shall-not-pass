@@ -226,6 +226,7 @@ let pausedPollEvery = 5              // while paused, only poll every 5th tick (
 let trackEndInterval: TimeInterval = 0.05   // fast checks around a predicted track end
 let trackEndLead: TimeInterval = 0.75       // start this long before the predicted end
 let trackEndGrace: TimeInterval = 2.5       // and give up this long after it
+let afterRestoreWatch: TimeInterval = 3     // fast checks after unmuting, for back-to-back interruptions
 let debug = ProcessInfo.processInfo.environment["SHALL_NOT_PASS_DEBUG"] == "1"
 let defaultVolume = 50
 
@@ -386,7 +387,7 @@ enum Mode: Equatable {
 }
 
 enum Source: String {
-    case notification, trackEnd, poll, startup
+    case notification, trackEnd, afterRestore, poll, startup
 }
 
 // Spotify's own ID prefix for these tracks.
@@ -405,6 +406,7 @@ final class Suppressor {
     private var trackEndTimer: Timer?    // fires shortly before the predicted end
     private var trackEndWatch: Timer?    // fast checks around the end
     private var predictedEnd: Date?
+    private var restoredAt: Date?
 
     init() {
         if let persisted = loadPersisted() {
@@ -460,6 +462,11 @@ final class Suppressor {
     private func handleNotification(_ info: [AnyHashable: Any]) {
         let trackID = info["Track ID"] as? String ?? ""
         let state = info["Player State"] as? String ?? ""
+        if debug {
+            let position = info["Playback Position"] as? Double ?? -1
+            let duration = info["Duration"] as? Double ?? -1
+            log("debug: notification \(state) \(trackID) position=\(position)s duration=\(Int(duration))ms")
+        }
         lastKnownPlaying = state == "Playing"
         evaluate(trackID: trackID, isPlaying: lastKnownPlaying, volume: nil, source: .notification)
 
@@ -536,6 +543,30 @@ final class Suppressor {
                     if debug { log("debug: no track change by predicted end + \(trackEndGrace)s") }
                     self.stopTrackEndWatch()
                 }
+            }
+        }
+        watch.tolerance = 0.005
+        RunLoop.main.add(watch, forMode: .common)
+        trackEndWatch = watch
+    }
+
+    // Spotify can report a song between two interruptions and then start the
+    // second one without a notification. Checking fast for a few seconds after
+    // unmuting catches that within ~100ms instead of at the next 2s poll.
+    private func watchAfterRestore() {
+        stopTrackEndWatch()
+        let until = Date().addingTimeInterval(afterRestoreWatch)
+        let watch = Timer(timeInterval: trackEndInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            switch self.spotify.trackID() {
+            case .success(let current) where isInterruption(current):
+                self.stopTrackEndWatch()
+                self.evaluate(trackID: current, isPlaying: true, volume: nil, source: .afterRestore)
+            case .failure(let error):
+                self.stopTrackEndWatch()
+                self.handle(error)
+            default:
+                if Date() > until { self.stopTrackEndWatch() }
             }
         }
         watch.tolerance = 0.005
@@ -624,6 +655,9 @@ final class Suppressor {
             } else {
                 log("Interruption detected at track end. Muted. (saved volume: \(saved))")
             }
+        case .afterRestore:
+            let ms = Int(Date().timeIntervalSince(restoredAt ?? Date()) * 1000)
+            log("Interruption detected \(ms)ms after music resumed. Muted. (saved volume: \(saved))")
         case .poll:
             log("Interruption detected by the 2s check (not at a track end). Muted. (saved volume: \(saved))")
         case .notification, .startup:
@@ -653,7 +687,11 @@ final class Suppressor {
         switch spotify.trackID() {
         case .success(let current):
             guard !current.isEmpty, !isInterruption(current) else { return }
-            restore(to: saved, source: source)
+            if debug { log("debug: restoring for \(current)") }
+            if restore(to: saved, source: source) {
+                restoredAt = Date()
+                watchAfterRestore()
+            }
         case .failure(let error):
             handle(error)
         }

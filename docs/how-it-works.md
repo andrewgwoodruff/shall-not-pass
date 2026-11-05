@@ -33,7 +33,7 @@ Interruptions only start where a track ends. The daemon:
 2. **Watches the boundary.** Starting 0.75s before the predicted end, it reads `spotify url of current track` every 50ms (one frame each) until the track changes, or until 2.5s past the predicted end.
 3. **Mutes in a single script** that reads the current volume and sets it to 0 (two frames).
 
-Expected time from interruption start to silence: up to about 100ms (≤50ms until the next check, plus ~17ms to read the track, plus ~33ms to mute). In a live test, the boundary check noticed a real track change 63ms *before* the predicted end. The prediction was accurate, and the check was already running when the track changed.
+Expected time from interruption start to silence: up to about 100ms (≤50ms until the next check, plus ~17ms to read the track, plus ~33ms to mute). In a live test on 2026-11-05, three interruptions started 24–34ms after the predicted end and were muted within 57–82ms. Song-to-song changes landed 63ms before to 277ms after the prediction, all well inside the watch window.
 
 **The 2-second check** covers everything else: an interruption that starts after a mid-track skip, a missed or wrong prediction, or any missed event. Its worst case is 2 seconds. While Spotify is paused, it runs every 10 seconds.
 
@@ -42,6 +42,8 @@ Expected time from interruption start to silence: up to about 100ms (≤50ms unt
 ## Restoring the volume
 
 The interruption → music notification triggers a restore right away. The daemon first rereads the current track (one frame) to confirm it really isn't an interruption, then sets the volume (one frame). Roughly 35ms of the new song plays at volume 0. If a notification is ever missed, the 2-second check restores instead and logs that it did.
+
+**Back-to-back interruptions.** Spotify can report a song for about a second between two interruptions, then start the second one without a notification. In the live test this let about a second through before the 2-second check caught it. So for 3 seconds after every restore, the daemon checks the current track every 50ms, the same fast check it uses at track ends. That cuts the gap to about 100ms. It also covers the ~17ms between confirming a song and setting the volume. It can't remove the gap entirely: Spotify doesn't announce the start, so it can only be detected by checking.
 
 ---
 
