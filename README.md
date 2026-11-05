@@ -9,7 +9,7 @@
 
 An over-engineered remote control that handles distractions for you. When an interruption starts in what you're listening to, it turns the volume down within about a tenth of a second. When your content comes back, it puts the volume back exactly where you had it.
 
-![The volume drops to zero when an interruption starts and comes back with the music](docs/demo.gif)
+![The volume drops to zero when an interruption starts and comes back when it ends](docs/demo.gif)
 
 ---
 
@@ -21,7 +21,7 @@ Paste this in Terminal:
 curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
 ```
 
-macOS will ask whether `shall-not-pass` may control your player app. Click **OK**. That permission is how it moves the app's volume slider; without it, it can't do anything. (If the app isn't open yet, the prompt appears the first time you open it.)
+macOS will ask for the permissions `shall-not-pass` needs to handle distractions for you. Click **OK**; without them, it can't do anything. (If a [supported app](#what-it-works-with) isn't open yet, the prompt appears the first time you open it.)
 
 That's it. It starts automatically at login, and you can forget it's there.
 
@@ -55,8 +55,8 @@ More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 
 ## What it touches, and what it doesn't
 
-- **Changes:** the player app's own volume slider, and nothing else.
-- **Doesn't touch:** your Mac's volume, other apps, the player app's files, or its network traffic. It has no network access of its own.
+- **Changes:** the volume of the supported app that's playing, and nothing else.
+- **Doesn't touch:** your Mac's overall volume, other apps, the supported app's files, or its network traffic. It has no network access of its own.
 - **Needs:** no admin password and no `sudo`. Everything installs into your home folder.
 - **You stay in charge:** move the slider yourself during an interruption and it backs off until the interruption ends.
 - **Can't get stuck at zero:** your volume is saved to disk before it's lowered, so a crash, a restart, or the app quitting can't lose it.
@@ -66,7 +66,7 @@ More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 
 ## How it works
 
-Player apps announce when your music starts, pauses, or comes back, but not when an interruption starts. So `shall-not-pass` predicts when each track will end, from its length and position, and checks the app every 50ms around that moment. In testing, interruptions started within 35ms of the predicted end and were muted within 57–82ms. A check every 2 seconds catches anything else.
+Supported apps announce when your content starts, pauses, or comes back, but not when an interruption starts. So `shall-not-pass` predicts when each track will end, from its length and position, and checks every 50ms around that moment. In testing, interruptions started within 35ms of the predicted end and were muted within 57–82ms. A check every 2 seconds catches anything else.
 
 The full story, with measurements: [How it works](docs/how-it-works.md).
 
@@ -78,7 +78,7 @@ The full story, with measurements: [How it works](docs/how-it-works.md).
 No. It doesn't block, skip, or modify anything, and it doesn't touch Spotify's app or its network traffic. Everything Spotify plays, plays in full; `shall-not-pass` only moves Spotify's own volume slider down and back up. Unlike `shall-not-pass`, which is an over-engineered remote control focused on changing your volume when you don't want to listen to something, Spotify Premium removes ads completely for you and is a viable option for anyone who wants to completely remove ads from their Spotify experience.
 
 **Does it change my Mac's volume?**
-No. Only the player app's own slider moves. Calls, videos, and everything else stay exactly as loud as they were.
+No. Only the supported app's own volume moves. Calls, videos, and everything else stay exactly as loud as they were.
 
 **Will it open the app on its own?**
 No. It only talks to the app while it's already running.
@@ -101,7 +101,7 @@ Only the apps in [What it works with](#what-it-works-with) for now. Others are [
 ~/.local/share/shall-not-pass/uninstall.sh   # remove it (keeps the log)
 ```
 
-Re-running the install command also updates. If it ever stops working, especially after the player app updates, update first. Details, including how to tell which install method a machine used: [Troubleshooting](docs/troubleshooting.md).
+Re-running the install command also updates. If it ever stops working, especially after a supported app updates, update first. Details, including how to tell which install method a machine used: [Troubleshooting](docs/troubleshooting.md).
 
 ---
 
