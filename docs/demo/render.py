@@ -22,11 +22,11 @@ S = 2  # supersampling factor; frames are drawn at 2x and scaled down
 FPS = 25
 
 VOLUME = 60
-SONG_LENGTH = 214
+SONG_LENGTH = 10  # short, so the countdown to its end is visible
 GAP_LENGTH = 5
 
 # Timeline of the GIF, in seconds.
-T_GAP = 3.0  # song ends, interruption starts
+T_GAP = 5.0  # song ends, interruption starts
 T_BACK = T_GAP + GAP_LENGTH  # next song starts
 T_TOTAL = T_BACK + 3.5
 
