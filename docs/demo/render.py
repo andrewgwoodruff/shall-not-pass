@@ -208,7 +208,7 @@ def frame(t, F):
     rect(d, (232, 222, 432, 226), 2, LINE)
     if vol:
         rect(d, (232, 222, 232 + 200 * vol / 100, 226), 2, GOLD)
-    text(d, (446, 216), f"Spotify volume {vol}", F["body"], TEXT if vol else RED)
+    text(d, (446, 216), f"Volume {vol}", F["body"], TEXT if vol else RED)
 
     # Badge on the right
     if st["phase"] == "detecting":

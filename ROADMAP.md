@@ -16,13 +16,13 @@ Swift daemon. It watches the end of each track, where interruptions start, and m
 
 ## Maybe: Core Audio process tap (macOS 14.2+)
 
-Mute Spotify's audio stream directly instead of moving its volume slider. There would be nothing to save or restore, but it needs the System Audio Recording permission.
+Mute the player app's audio stream directly instead of moving its volume slider. There would be nothing to save or restore, but it needs the System Audio Recording permission.
 
 ---
 
 ## Idea: Windows
 
-Per-process volume control so only Spotify is silenced — your other audio is never affected.
+Per-process volume control so only the player app is silenced — your other audio is never affected.
 
 ---
 

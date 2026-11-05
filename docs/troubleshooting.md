@@ -21,7 +21,7 @@ launchctl unload ~/Library/LaunchAgents/com.shall-not-pass.plist
 launchctl load -w ~/Library/LaunchAgents/com.shall-not-pass.plist
 ```
 
-**5. Update.** Spotify has occasionally broken AppleScript support in app updates, and fixes ship here.
+**5. Update.** Player apps have occasionally broken their AppleScript support in updates, and fixes ship here.
 ```bash
 ~/.local/share/shall-not-pass/update.sh
 ```
