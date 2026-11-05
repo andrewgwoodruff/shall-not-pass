@@ -1,0 +1,52 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck --severity=warning *.sh
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the embedded Swift daemon
+        run: ./shall-not-pass.sh --build
+
+      - name: Daemon starts, watches, and exits cleanly on SIGTERM
+        run: |
+          ./shall-not-pass.sh > daemon.log 2>&1 &
+          pid=$!
+          sleep 3
+          kill -TERM "$pid"
+          wait "$pid"
+          cat daemon.log
+          grep -q "event-driven" daemon.log
+          grep -q "Goodbye" daemon.log
+
+      # Real install into a throwaway $HOME. launchctl and osascript are
+      # stubbed so nothing is registered on the runner.
+      - name: Install into a sandbox
+        run: |
+          sandbox="$RUNNER_TEMP/sandbox"
+          mkdir -p "$sandbox/home" "$sandbox/bin"
+          printf '#!/bin/bash\necho "launchctl $*" >> "%s/launchctl.log"\n' "$sandbox" > "$sandbox/bin/launchctl"
+          printf '#!/bin/bash\nexit 0\n' > "$sandbox/bin/osascript"
+          chmod +x "$sandbox/bin/"*
+          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" ./install.sh
+
+          dir="$sandbox/home/.local/share/shall-not-pass"
+          test -x "$dir/shall-not-pass.sh"
+          test -x "$dir/uninstall.sh"
+          test -x "$dir/update.sh"
+          grep -q "method=manual" "$dir/install-info"
+          plutil -lint "$sandbox/home/Library/LaunchAgents/com.shall-not-pass.plist"
+          grep -q "load -w" "$sandbox/launchctl.log"
+
+          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" "$dir/uninstall.sh"
+          test ! -e "$dir"
