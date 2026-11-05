@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shall-not-pass — silences Spotify ads without touching system volume
+# shall-not-pass — quiets Spotify's interruptions without touching system volume
 # https://github.com/andrewgwoodruff/shall-not-pass
 #
 # This file is the whole program. On start it builds the event-driven Swift
@@ -83,13 +83,13 @@ fi
 # ---------------------------------------------------------------------------
 
 SAVED_VOLUME=50
-AD_PLAYING=false
+INTERRUPTED=false
 SPOTIFY_WAS_RUNNING=false
 PERMISSION_WARNED=false
 ERR_FILE="/tmp/shall-not-pass-$$.err"
 
 restore_volume() {
-    if [ "$AD_PLAYING" = true ]; then
+    if [ "$INTERRUPTED" = true ]; then
         osascript -e "tell application \"Spotify\" to set sound volume to $SAVED_VOLUME" 2>/dev/null || true
         local current_vol diff
         current_vol=$(osascript -e 'tell application "Spotify" to get sound volume' 2>/dev/null || echo "-1")
@@ -98,7 +98,7 @@ restore_volume() {
         [ "$diff" -lt 0 ] && diff=$(( -diff ))
         if [ "$diff" -le 1 ]; then
             log "Volume restored to $current_vol"
-            AD_PLAYING=false
+            INTERRUPTED=false
         else
             log "Volume restore failed (expected $SAVED_VOLUME, got $current_vol). Will retry next poll."
         fi
@@ -122,7 +122,7 @@ while true; do
     if ! pgrep -x Spotify >/dev/null 2>&1; then
         if [ "$SPOTIFY_WAS_RUNNING" = true ]; then
             log "Spotify closed. Resetting state."
-            AD_PLAYING=false
+            INTERRUPTED=false
             SPOTIFY_WAS_RUNNING=false
             PERMISSION_WARNED=false
         fi
@@ -152,20 +152,20 @@ while true; do
     PERMISSION_WARNED=false
 
     if [[ "$CURRENT_URL" == spotify:ad:* ]]; then
-        if [ "$AD_PLAYING" = false ]; then
+        if [ "$INTERRUPTED" = false ]; then
             SAVED_VOLUME=$(osascript -e 'tell application "Spotify" to get sound volume' 2>/dev/null || echo "50")
             if [ "$SAVED_VOLUME" = "0" ]; then
                 log "Captured volume was 0 (possible stale mute). Defaulting to 50."
                 SAVED_VOLUME=50
             fi
             osascript -e 'tell application "Spotify" to set sound volume to 0' 2>/dev/null || true
-            AD_PLAYING=true
+            INTERRUPTED=true
             log "Interruption detected. Muted. (saved volume: $SAVED_VOLUME)"
         fi
     else
-        if [ "$AD_PLAYING" = true ]; then
+        if [ "$INTERRUPTED" = true ]; then
             restore_volume
-            if [ "$AD_PLAYING" = false ]; then
+            if [ "$INTERRUPTED" = false ]; then
                 log "Interruption ended. Volume restored."
             fi
         fi
@@ -192,19 +192,19 @@ __INFO_PLIST__
     <key>CFBundleName</key>
     <string>shall-not-pass</string>
     <key>NSAppleEventsUsageDescription</key>
-    <string>shall-not-pass lowers Spotify's volume during ads and restores it afterward.</string>
+    <string>shall-not-pass lowers Spotify's volume during interruptions and restores it afterward.</string>
 </dict>
 </plist>
 __END_INFO_PLIST__
 
 : <<'__END_SWIFT__'
 __SWIFT__
-// shall-not-pass — silences Spotify ads without touching system volume
+// shall-not-pass — quiets Spotify's interruptions without touching system volume
 // https://github.com/andrewgwoodruff/shall-not-pass
 //
-// How ads are detected: Spotify broadcasts PlaybackStateChanged when music
-// resumes after an ad, but NOT when an ad starts. Ads only start where a track
-// ends, so the daemon predicts each track's end (from its duration and
+// How interruptions are detected: Spotify broadcasts PlaybackStateChanged when
+// music resumes after one, but NOT when one starts. They only start where a
+// track ends, so the daemon predicts each track's end (from its duration and
 // position) and checks the current track every 50ms around that moment. A
 // 2-second poll covers everything else (skips, seeks, missed events).
 //
@@ -355,7 +355,7 @@ final class Spotify {
 // MARK: - Persisted state
 
 // Written before muting, deleted after a successful restore. If the daemon
-// dies mid-ad (crash, kill, reboot), the next start restores the real volume
+// dies mid-interruption (crash, kill, reboot), the next start restores the real volume
 // instead of guessing.
 struct PersistedState: Codable {
     var savedVolume: Int
@@ -382,21 +382,22 @@ func clearPersisted() {
 enum Mode: Equatable {
     case idle
     case muted(savedVolume: Int)
-    case userOverride      // user moved the slider during an ad; hands off until it ends
+    case userOverride      // user moved the slider during an interruption; hands off until it ends
 }
 
 enum Source: String {
     case notification, trackEnd, poll, startup
 }
 
-func isAd(_ trackID: String) -> Bool { trackID.hasPrefix("spotify:ad:") }
+// Spotify's own ID prefix for these tracks.
+func isInterruption(_ trackID: String) -> Bool { trackID.hasPrefix("spotify:ad:") }
 
 final class Suppressor {
     private let spotify = Spotify()
     private var mode: Mode = .idle
     private var lastKnownPlaying = true
     // The volume the user chose. Spotify quantizes (set 85, read back 84), so
-    // re-reading after each restore would drift the volume down every ad.
+    // re-reading after each restore would drift the volume down every time.
     private var userVolume: Int?
     private var pendingRestore: DispatchWorkItem?
     private var permissionWarned = false
@@ -495,9 +496,9 @@ final class Suppressor {
     private func planTrackEnd(trackID: String, isPlaying: Bool, remaining: TimeInterval?) {
         trackEndTimer?.invalidate()
         trackEndTimer = nil
-        // Only needed while music plays: ad -> ad needs nothing, and ad ->
-        // music is announced by a notification.
-        guard isPlaying, mode == .idle, !trackID.isEmpty, !isAd(trackID),
+        // Only needed while music plays: interruption -> interruption needs
+        // nothing, and interruption -> music is announced by a notification.
+        guard isPlaying, mode == .idle, !trackID.isEmpty, !isInterruption(trackID),
               let remaining = remaining, remaining > 0 else { return }
         if trackEndWatch != nil { return }
 
@@ -556,14 +557,14 @@ final class Suppressor {
     // MARK: Transitions
 
     private func evaluate(trackID: String, isPlaying: Bool, volume: Int?, source: Source) {
-        if isAd(trackID) {
+        if isInterruption(trackID) {
             cancelPendingRestore()
             switch mode {
             case .idle:
                 mute(source: source)
             case .muted:
                 // Volume should be 0 while muted. Anything else means the user
-                // turned it up on purpose; respect that until the ad ends.
+                // turned it up on purpose; respect that until the interruption ends.
                 if let volume = volume, volume > 1 {
                     log("Volume changed to \(volume) during interruption. Respecting your change until it ends.")
                     mode = .userOverride
@@ -631,7 +632,7 @@ final class Suppressor {
     }
 
     // Restores right away, but re-checks the current track first so a stale
-    // or out-of-order event can't unmute an ad.
+    // or out-of-order event can't unmute an interruption.
     private func scheduleRestore(source: Source) {
         let work = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
@@ -651,7 +652,7 @@ final class Suppressor {
         guard case .muted(let saved) = mode else { return }
         switch spotify.trackID() {
         case .success(let current):
-            guard !current.isEmpty, !isAd(current) else { return }
+            guard !current.isEmpty, !isInterruption(current) else { return }
             restore(to: saved, source: source)
         case .failure(let error):
             handle(error)

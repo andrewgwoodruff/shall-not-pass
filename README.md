@@ -23,7 +23,7 @@ When it detects an audio interruption, it lowers the app's volume within a fract
 
 - macOS 12 or later
 - Spotify desktop app
-- Xcode Command Line Tools (`xcode-select --install`), recommended. The installer uses them to build the faster daemon, which mutes within about a tenth of a second when an ad starts at the end of a track (2 seconds at most otherwise). Without them it installs the shell-script version instead, which needs nothing extra but polls every 2 seconds.
+- Xcode Command Line Tools (`xcode-select --install`), recommended. The installer uses them to build the faster daemon, which mutes within about a tenth of a second when an interruption starts at the end of a track (2 seconds at most otherwise). Without them it installs the shell-script version instead, which needs nothing extra but polls every 2 seconds.
 
 ---
 
@@ -100,7 +100,7 @@ Stops the daemon and removes all installed files. No data is lost.
 
 ## Known limitations
 
-- **Fast, not instant:** up to about a tenth of a second of an ad may reach your speakers before it's muted, or up to 2 seconds if the ad starts somewhere other than the end of a track (e.g. right after you skip). The shell-script fallback can let up to 2 seconds through. See [How it works](docs/how-it-works.md).
+- **Fast, not instant:** up to about a tenth of a second of an interruption may reach your speakers before it's muted, or up to 2 seconds if it starts somewhere other than the end of a track (e.g. right after you skip). The shell-script fallback can let up to 2 seconds through. See [How it works](docs/how-it-works.md).
 - **AppleScript breakage:** Spotify has occasionally broken AppleScript support in app updates. Run `./update.sh` if you notice it stop working.
 - **Automation permission required:** macOS requires explicit permission for shall-not-pass to control Spotify. You'll be prompted automatically. If it was denied or revoked, the daemon will log a clear error with instructions.
 
@@ -155,6 +155,13 @@ curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main
 | Windows | Planned |
 | Android | Planned |
 | iOS | Out of scope (see ROADMAP.md) |
+
+---
+
+## FAQ
+
+**Is this a Spotify ad-blocker?**
+No. It doesn't block, skip, or modify anything, and it doesn't touch Spotify's app or its network traffic. Everything Spotify plays, plays in full; `shall-not-pass` only moves Spotify's own volume slider down and back up. Unlike `shall-not-pass`, which is an over-engineered remote control focused on changing your volume when you don't want to listen to something, Spotify Premium removes ads completely for you and is a viable option for anyone who wants to completely remove ads from their Spotify experience.
 
 ---
 
