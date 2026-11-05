@@ -56,7 +56,7 @@ More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 ## What it touches, and what it doesn't
 
 - **Changes:** the volume of the supported app that's playing, and nothing else.
-- **Doesn't touch:** your Mac's overall volume, other apps, the supported app's files, or its network traffic. It has no network access of its own.
+- **Doesn't touch:** your Mac's overall volume, other apps, the supported app's files, or its network traffic. It never connects to the network itself.
 - **Needs:** no admin password and no `sudo`. Everything installs into your home folder.
 - **You stay in charge:** move the slider yourself during an interruption and it backs off until the interruption ends.
 - **Can't get stuck at zero:** your volume is saved to disk before it's lowered, so a crash, a restart, or the app quitting can't lose it.
@@ -75,7 +75,7 @@ The full story, with measurements: [How it works](docs/how-it-works.md).
 ## FAQ
 
 **Is this a Spotify ad-blocker?**
-No. It doesn't block, skip, or modify anything, and it doesn't touch Spotify's app or its network traffic. Everything Spotify plays, plays in full; `shall-not-pass` only moves Spotify's own volume slider down and back up. Unlike `shall-not-pass`, which is an over-engineered remote control focused on changing your volume when you don't want to listen to something, Spotify Premium removes ads completely for you and is a viable option for anyone who wants to completely remove ads from their Spotify experience.
+No. It doesn't block, skip, or remove anything. It doesn't modify Spotify's app or interfere with its network traffic; it only talks to Spotify through the scripting interface Spotify provides for macOS. Everything Spotify plays, plays in full; `shall-not-pass` only moves Spotify's own volume slider down and back up. Unlike `shall-not-pass`, which is an over-engineered remote control focused on changing your volume when you don't want to listen to something, Spotify Premium removes ads completely for you and is a viable option for anyone who wants to completely remove ads from their Spotify experience.
 
 **Does it change my Mac's volume?**
 No. Only the supported app's own volume moves. Calls, videos, and everything else stay exactly as loud as they were.
