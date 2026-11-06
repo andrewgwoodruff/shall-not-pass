@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![macOS 12+](https://img.shields.io/badge/macOS-12%2B-lightgrey)
 
-An over-engineered remote control that handles distractions for you. When an interruption starts in what you're listening to, it turns the volume down within about a tenth of a second. When your content comes back, it puts the volume back exactly where you had it.
+An over-engineered remote control that handles distractions for you. When something interrupts your listening session, it turns the volume down within about a tenth of a second. When your content comes back, it puts the volume back exactly where you had it.
 
 ![The volume drops to zero when an interruption starts and comes back when it ends](docs/demo.gif)
 
@@ -68,7 +68,7 @@ More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 
 Supported apps announce when your content starts, pauses, or comes back, but not when an interruption starts. So `shall-not-pass` predicts when each track will end, from its length and position, and checks every 50ms around that moment. In testing, interruptions started within 35ms of the predicted end and were muted within 57–82ms. A check every 2 seconds catches anything else.
 
-The full story, with measurements: [How it works](docs/how-it-works.md).
+More detail: [How it works](docs/how-it-works.md).
 
 ---
 
