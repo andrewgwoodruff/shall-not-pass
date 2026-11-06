@@ -68,7 +68,7 @@ More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 
 Supported apps announce when your content starts, pauses, or comes back, but not when an interruption starts. So `shall-not-pass` predicts when each track will end, from its length and position, and checks every 50ms around that moment. In testing, interruptions started within 35ms of the predicted end and were muted within 57–82ms. A check every 2 seconds catches anything else.
 
-The full story, with measurements: [How it works](docs/how-it-works.md).
+More detail: [How it works](docs/how-it-works.md).
 
 ---
 
