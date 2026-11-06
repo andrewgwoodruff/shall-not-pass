@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![macOS 12+](https://img.shields.io/badge/macOS-12%2B-lightgrey)
 
-An over-engineered remote control that handles distractions for you. When an interruption starts in what you're listening to, it turns the volume down within about a tenth of a second. When your content comes back, it puts the volume back exactly where you had it.
+An over-engineered remote control that handles distractions for you. When something interrupts your listening session, it turns the volume down within about a tenth of a second. When your content comes back, it puts the volume back exactly where you had it.
 
 ![The volume drops to zero when an interruption starts and comes back when it ends](docs/demo.gif)
 
