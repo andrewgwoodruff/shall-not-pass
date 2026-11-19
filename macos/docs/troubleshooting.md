@@ -46,7 +46,7 @@ For more detail in the log, run it in the foreground with `SHALL_NOT_PASS_DEBUG=
   ```bash
   curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash
   ```
-- **Manual install:** from the cloned repo, `./update.sh` (pulls and reinstalls).
+- **Manual install:** from the cloned repo, `./macos/update.sh` (pulls and reinstalls).
 
 Installs from before `update.sh` existed don't have it until their next update. The quick-install command updates any machine correctly.
 

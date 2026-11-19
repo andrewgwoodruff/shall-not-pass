@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Browser extension (new):** mutes a YouTube or Spotify web player tab during an interruption and unmutes it afterward. Chrome and other Chromium browsers. See [How the browser extension works](extension/docs/how-it-works.md).
+- **Repo layout:** the Mac app now lives in `macos/`, making room for more products. The install command is unchanged, and existing installs keep updating as before.
+
 ## v2.0.0
 
 A rewrite of the daemon in Swift. It is still one file, `shall-not-pass.sh`, and every installer and updater picks it up.
@@ -12,7 +17,7 @@ A rewrite of the daemon in Swift. It is still one file, `shall-not-pass.sh`, and
 - **You stay in charge.** Move the slider during an interruption and it backs off until the interruption ends.
 - **Falls back to the v1 script** if the Xcode Command Line Tools aren't installed.
 - **Updates without a clone:** re-run the install command, or `~/.local/share/shall-not-pass/update.sh`, which follows whichever install method the machine used (recorded in `install-info`).
-- CI, a bug report template, [How it works](docs/how-it-works.md), and [Troubleshooting](docs/troubleshooting.md).
+- CI, a bug report template, [How it works](macos/docs/how-it-works.md), and [Troubleshooting](macos/docs/troubleshooting.md).
 
 ## v1
 
