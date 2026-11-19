@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "shall-not-pass",
+  "version": "0.1.0",
+  "description": "Stands watch so you don't have to. Silences a tab during interruptions on YouTube and Spotify, and brings the sound back after.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/sites/youtube.js", "src/content.js"]
+    },
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["src/sites/spotify.js", "src/content.js"]
+    }
+  ]
+}

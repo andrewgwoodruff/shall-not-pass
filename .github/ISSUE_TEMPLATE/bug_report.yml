@@ -5,35 +5,42 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting! Before filing, please try updating first. Many issues are already fixed:
-        `curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash`
+        Thanks for reporting! Before filing, please try updating first. Many issues are already fixed.
+        On a Mac: `curl -fsSL https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main/install.sh | bash`
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where?
+      options:
+        - Mac app
+        - Browser extension
+    validations:
+      required: true
   - type: textarea
     id: what
     attributes:
       label: What happened?
-      description: What did you expect, and what happened instead?
+      description: What did you expect, and what happened instead? For the browser extension, which site?
     validations:
       required: true
   - type: input
-    id: macos
+    id: system
     attributes:
-      label: macOS version
-      description: Apple menu → About This Mac
-      placeholder: e.g. macOS 15.3 (Apple Silicon)
+      label: System and browser
+      description: Your OS version, and your browser and its version if it's the extension.
+      placeholder: e.g. macOS 15.3 (Apple Silicon), Chrome 142
     validations:
       required: true
   - type: input
     id: spotify
     attributes:
-      label: Spotify version
+      label: Spotify app version (Mac app only)
       description: Spotify menu → About Spotify
       placeholder: e.g. 1.2.98.301
-    validations:
-      required: true
   - type: dropdown
     id: mode
     attributes:
-      label: Which version is running?
+      label: Which version is running? (Mac app only)
       description: The first line of the log says "event-driven" or "poll interval".
       options:
         - Event-driven (Swift)
@@ -42,8 +49,6 @@ body:
   - type: textarea
     id: log
     attributes:
-      label: Log
+      label: Log (Mac app only)
       description: Output of `tail -50 ~/Library/Logs/shall-not-pass.log`
       render: text
-    validations:
-      required: true

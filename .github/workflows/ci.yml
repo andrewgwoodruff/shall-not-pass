@@ -1,6 +1,10 @@
-name: CI
+name: macOS
 
-on: [push, pull_request]
+on:
+  push:
+    paths: ["macos/**", "install.sh", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["macos/**", "install.sh", ".github/workflows/ci.yml"]
 
 jobs:
   lint:
@@ -8,19 +12,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck --severity=warning *.sh
+        run: shellcheck --severity=warning *.sh macos/*.sh
 
   macos:
     runs-on: macos-latest
+    env:
+      # Quick installs download from GitHub; point them at the commit under
+      # test instead of main.
+      SHALL_NOT_PASS_REPO_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Build the embedded Swift daemon
-        run: ./shall-not-pass.sh --build
+        run: macos/shall-not-pass.sh --build
 
       - name: Daemon starts, watches, and exits cleanly on SIGTERM
         run: |
-          ./shall-not-pass.sh > daemon.log 2>&1 &
+          macos/shall-not-pass.sh > daemon.log 2>&1 &
           pid=$!
           sleep 3
           kill -TERM "$pid"
@@ -29,7 +37,7 @@ jobs:
           grep -q "event-driven" daemon.log
           grep -q "Goodbye" daemon.log
 
-      # Real install into a throwaway $HOME. launchctl and osascript are
+      # Real installs into a throwaway $HOME. launchctl and osascript are
       # stubbed so nothing is registered on the runner.
       - name: Install into a sandbox
         run: |
@@ -38,21 +46,35 @@ jobs:
           printf '#!/bin/bash\necho "launchctl $*" >> "%s/launchctl.log"\n' "$sandbox" > "$sandbox/bin/launchctl"
           printf '#!/bin/bash\nexit 0\n' > "$sandbox/bin/osascript"
           chmod +x "$sandbox/bin/"*
-          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" ./install.sh
+          export HOME="$sandbox/home" PATH="$sandbox/bin:$PATH"
+          dir="$HOME/.local/share/shall-not-pass"
 
-          dir="$sandbox/home/.local/share/shall-not-pass"
+          # From a clone
+          macos/install.sh
           test -x "$dir/shall-not-pass.sh"
           test -x "$dir/uninstall.sh"
           test -x "$dir/update.sh"
           grep -q "method=manual" "$dir/install-info"
-          plutil -lint "$sandbox/home/Library/LaunchAgents/com.shall-not-pass.plist"
+          grep -q "source=$PWD/macos" "$dir/install-info"
+          plutil -lint "$HOME/Library/LaunchAgents/com.shall-not-pass.plist"
           grep -q "load -w" "$sandbox/launchctl.log"
-
-          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" "$dir/uninstall.sh"
+          "$dir/uninstall.sh"
           test ! -e "$dir"
 
+          # The root install.sh, from a clone (what older update.sh runs)
+          ./install.sh
+          grep -q "method=manual" "$dir/install-info"
+          "$dir/uninstall.sh"
+
           # Piped like curl | bash, from inside the repo: it must download from
-          # GitHub, not install whatever shall-not-pass.sh is in the current folder.
-          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" bash < install.sh
+          # GitHub, not install whatever is in the current folder.
+          bash < install.sh
           grep -q "method=quick" "$dir/install-info"
-          HOME="$sandbox/home" PATH="$sandbox/bin:$PATH" "$dir/uninstall.sh"
+          cmp "$dir/shall-not-pass.sh" macos/shall-not-pass.sh
+          plutil -lint "$HOME/Library/LaunchAgents/com.shall-not-pass.plist"
+
+          # A quick install updates through the root install.sh
+          "$dir/update.sh"
+          grep -q "method=quick" "$dir/install-info"
+          "$dir/uninstall.sh"
+          test ! -e "$dir"

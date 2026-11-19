@@ -2,3 +2,5 @@
 *.log
 .claude/
 research.md
+node_modules/
+extension/dist/
