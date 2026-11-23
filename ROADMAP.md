@@ -4,11 +4,12 @@
 
 ## ✅ Now
 
-Spotify desktop app on macOS.
+- **Mac:** the Spotify desktop app.
+- **Browser:** YouTube and Spotify's web player, in Chrome and other Chromium browsers on Mac, Windows, and Linux.
 
-## 🔭 Next: your browser
+## 🔭 Next: more browsers
 
-A browser extension for YouTube, Spotify's web player, and other sites. One install covers Mac, Windows, and Linux, and only the interrupted tab goes quiet. ([#8](https://github.com/andrewgwoodruff/shall-not-pass/issues/8))
+The Chrome Web Store, then Firefox, then Safari. Safari also runs extensions on iPhone and iPad, so YouTube in Safari would come along too. ([#8](https://github.com/andrewgwoodruff/shall-not-pass/issues/8))
 
 ## 💡 Later
 

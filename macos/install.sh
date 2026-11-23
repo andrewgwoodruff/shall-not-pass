@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# install.sh — installs shall-not-pass as a macOS LaunchAgent
+# Works whether run from a git clone or piped via curl | bash
+
+set -euo pipefail
+
+# SHALL_NOT_PASS_REPO_URL lets CI install from the commit under test.
+REPO_URL="${SHALL_NOT_PASS_REPO_URL:-https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main}"
+INSTALL_DIR="$HOME/.local/share/shall-not-pass"
+PLIST_DEST="$HOME/Library/LaunchAgents/com.shall-not-pass.plist"
+LOG_FILE="$HOME/Library/Logs/shall-not-pass.log"
+
+# BASH_SOURCE is empty when piped via curl | bash. Only a script run from a
+# file has a directory of its own; otherwise dirname "" would be the current
+# directory, and any shall-not-pass.sh there would be installed instead.
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "Error: shall-not-pass currently supports macOS only."
+    echo "See ROADMAP.md for what's next."
+    exit 1
+fi
+
+echo "Installing shall-not-pass..."
+
+mkdir -p "$INSTALL_DIR"
+mkdir -p "$HOME/Library/LaunchAgents"
+
+# Unload any existing agent before replacing files, so reinstalls work cleanly
+launchctl unload "$PLIST_DEST" 2>/dev/null || true
+
+if [ -f "$SCRIPT_DIR/shall-not-pass.sh" ]; then
+    # Running from a git clone — use local files
+    cp "$SCRIPT_DIR/shall-not-pass.sh" "$INSTALL_DIR/shall-not-pass.sh"
+    cp "$SCRIPT_DIR/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
+    cp "$SCRIPT_DIR/update.sh" "$INSTALL_DIR/update.sh"
+    sed \
+        -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
+        -e "s|__USERNAME__|$(whoami)|g" \
+        "$SCRIPT_DIR/com.shall-not-pass.plist" > "$PLIST_DEST"
+    METHOD=manual
+    SOURCE="$SCRIPT_DIR"
+    COMMIT="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+else
+    # Running via curl | bash — download files from GitHub
+    curl -fsSL "$REPO_URL/macos/shall-not-pass.sh" -o "$INSTALL_DIR/shall-not-pass.sh"
+    curl -fsSL "$REPO_URL/macos/uninstall.sh" -o "$INSTALL_DIR/uninstall.sh"
+    curl -fsSL "$REPO_URL/macos/update.sh" -o "$INSTALL_DIR/update.sh"
+    curl -fsSL "$REPO_URL/macos/com.shall-not-pass.plist" | \
+        sed \
+            -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
+            -e "s|__USERNAME__|$(whoami)|g" \
+        > "$PLIST_DEST"
+    METHOD=quick
+    SOURCE="$REPO_URL"
+    COMMIT=unknown
+fi
+
+chmod +x "$INSTALL_DIR/shall-not-pass.sh" "$INSTALL_DIR/uninstall.sh" "$INSTALL_DIR/update.sh"
+
+# Record how this machine was installed, so update.sh knows where to update from
+cat > "$INSTALL_DIR/install-info" <<EOF
+method=$METHOD
+source=$SOURCE
+commit=$COMMIT
+installed=$(date '+%Y-%m-%d %H:%M:%S')
+EOF
+
+# Build the event-driven daemon now, so problems show up here instead of only
+# in the log. (The daemon would otherwise build itself on first start.)
+echo ""
+if bash "$INSTALL_DIR/shall-not-pass.sh" --build; then
+    SWIFT=true
+    echo "Built the fast daemon (mutes within about 100ms)."
+else
+    SWIFT=false
+    echo "Installing the shell version instead (2s polling)."
+fi
+
+echo ""
+if [ "$SWIFT" = true ]; then
+    # The daemon controls Spotify as itself, so macOS asks on its behalf once
+    # it starts (or the first time Spotify is open).
+    echo "Automation permission is required for shall-not-pass to work."
+    echo "macOS will ask: \"shall-not-pass\" wants access to control \"Spotify\". Click OK."
+    echo "If Spotify is not open, the prompt will appear the first time you open it."
+    echo "If you dismissed it: System Settings -> Privacy & Security -> Automation"
+    echo "  -> enable shall-not-pass to control Spotify."
+else
+    # Request Automation permission BEFORE starting the daemon.
+    # If both request it simultaneously, macOS shows two dialogs.
+    # Doing it here first means the daemon starts with permission already granted.
+    echo "Requesting Automation permission..."
+    echo "(macOS may show a dialog. Click OK to allow your terminal to control Spotify.)"
+    echo ""
+    if osascript -e 'tell application "Spotify" to get sound volume' >/dev/null 2>&1; then
+        echo "Permission granted."
+    else
+        echo "IMPORTANT: Automation permission is required for shall-not-pass to work."
+        echo ""
+        echo "If Spotify is not open, open it and you will be prompted automatically."
+        echo "If you dismissed the dialog, grant permission manually:"
+        echo "  System Settings -> Privacy & Security -> Automation"
+        echo "  Enable your terminal app to control Spotify."
+    fi
+fi
+
+# Load the agent
+launchctl load -w "$PLIST_DEST"
+
+echo ""
+echo "  Log:       tail -f $LOG_FILE"
+echo "  Status:    launchctl list | grep shall-not-pass"
+if [ "$METHOD" = quick ]; then
+    echo "  Update:    curl -fsSL $REPO_URL/install.sh | bash"
+else
+    echo "  Update:    $SCRIPT_DIR/update.sh"
+fi
+echo "  Uninstall: $INSTALL_DIR/uninstall.sh"

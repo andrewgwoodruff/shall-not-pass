@@ -1,0 +1,34 @@
+name: Browser extension
+
+on:
+  push:
+    paths: ["extension/**", "docs/demo/render.py", ".github/workflows/extension.yml"]
+  pull_request:
+    paths: ["extension/**", "docs/demo/render.py", ".github/workflows/extension.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - run: npm ci
+      - name: Detector and mute tests
+        run: npm test
+      - name: Real Chromium with the extension loaded
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
+      - name: Package for the Chrome Web Store
+        run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shall-not-pass-extension
+          path: extension/dist/*.zip

@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main"
+REPO_URL="${SHALL_NOT_PASS_REPO_URL:-https://raw.githubusercontent.com/andrewgwoodruff/shall-not-pass/main}"
 INSTALL_DIR="$HOME/.local/share/shall-not-pass"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
