@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Browser extension (new):** mutes a YouTube or Spotify web player tab during an interruption and unmutes it afterward. Chrome and other Chromium browsers. See [How the browser extension works](extension/docs/how-it-works.md).
+- **Browser extension (new):** mutes a YouTube or Spotify web player tab during an interruption and unmutes it afterward. Chrome and other Chromium browsers. See [How the browser extension works](extension/docs/how-it-works.md). On Spotify, the tab goes quiet the instant a track ends, so the start of an interruption is never heard.
 - **Repo layout:** the Mac app now lives in `macos/`, making room for more products. The install command is unchanged, and existing installs keep updating as before.
 
 ## v2.0.0

@@ -60,6 +60,51 @@ for (const site of ["youtube", "spotify"]) {
   });
 }
 
+// Spotify starts the next track a moment before its page shows what it is.
+// These play the part of Spotify's player: start a (silent) track, then drop
+// it the way the player does when it moves on.
+const nextSong = fixture("spotify-playing").replaceAll("Declaration of Indo-Pendence", "Married Life").replace("/album/ID", "/album/ID2");
+// play() never settles without a source, so it isn't awaited.
+const startPlayer = (page) => page.evaluate(() => void (window.player = document.createElement("video")).play().catch(() => {}));
+const changeTrack = (page) => page.evaluate(() => window.player.dispatchEvent(new Event("emptied")));
+
+async function spotifyPlaying(name) {
+  const tab = await open(`https://open.spotify.com/${name}`, fixture("spotify-playing"));
+  await until(tab.muted, false);
+  await startPlayer(tab.page);
+  return tab;
+}
+
+test("spotify: goes quiet the instant a track changes, before the page shows what's next", async () => {
+  const { page, muted } = await spotifyPlaying("next-song");
+  await changeTrack(page);
+  await until(muted, true); // the page still shows the old song
+  await become(page, nextSong);
+  await until(muted, false);
+  await page.close();
+});
+
+test("spotify: a track change into an interruption stays quiet throughout", async () => {
+  const { page, muted } = await spotifyPlaying("next-interruption");
+  await changeTrack(page);
+  await until(muted, true);
+  await become(page, fixture("spotify-interrupted"));
+  await new Promise((r) => setTimeout(r, 3500)); // past the longest hold
+  assert.equal(await muted(), true);
+  await changeTrack(page);
+  await become(page, fixture("spotify-playing"));
+  await until(muted, false);
+  await page.close();
+});
+
+test("spotify: the same song again gets its sound back within a few seconds", async () => {
+  const { page, muted } = await spotifyPlaying("same-song");
+  await changeTrack(page);
+  await until(muted, true);
+  await until(muted, false); // the page never changes; the hold runs out
+  await page.close();
+});
+
 test("a page that opens mid-interruption is muted right away", async () => {
   const { page, muted } = await open("https://www.youtube.com/watch?v=already", fixture("youtube-interrupted"));
   await until(muted, true);

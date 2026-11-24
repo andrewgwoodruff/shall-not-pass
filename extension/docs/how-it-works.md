@@ -11,6 +11,8 @@ Each site gets a small detector that reads what the page already shows:
 
 The page tells the extension the moment it changes, so there's nothing to predict and no timer to wait on. A check once a second backs that up.
 
+Spotify starts the next track a fraction of a second before the bar shows what it is. So on Spotify, the tab goes quiet the instant one track ends, before the next one makes a sound, and stays quiet until the bar shows what's playing. Songs get their sound back right away; interruptions are never heard. If the bar doesn't change within 3 seconds (the same song again), the sound comes back anyway.
+
 ## Muting the tab
 
 The extension uses Chrome's own tab mute, the same as clicking the speaker icon on the tab. It doesn't block, skip, or change anything on the page; everything plays in full, just muted.
@@ -20,7 +22,7 @@ The extension uses Chrome's own tab mute, the same as clicking the speaker icon 
 
 ## Code
 
-- [`src/sites/`](../src/sites): one detector per site
+- [`src/sites/`](../src/sites): one detector per site, plus [`spotify-player.js`](../src/sites/spotify-player.js), which notices Spotify's track changes
 - [`src/content.js`](../src/content.js): watches the page and reports changes
 - [`src/mute.js`](../src/mute.js): mutes and unmutes tabs
 

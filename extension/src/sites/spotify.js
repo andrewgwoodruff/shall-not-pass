@@ -14,13 +14,20 @@
     }
   }
 
+  const bar = (doc) => doc.querySelector('[data-testid="now-playing-widget-v2"], [data-testid="now-playing-widget"]');
+
   globalThis.shallNotPassSite = {
     name: "Spotify",
     isInterrupted(doc) {
-      const bar = doc.querySelector('[data-testid="now-playing-widget-v2"], [data-testid="now-playing-widget"]');
-      const links = bar ? [...bar.querySelectorAll("a[href]")] : [];
+      const links = [...(bar(doc)?.querySelectorAll("a[href]") ?? [])];
       if (links.length === 0) return false; // nothing playing, or still loading
       return !links.some((a) => isContent(a.getAttribute("href")));
+    },
+    // What the bar shows right now, to tell when it moves on to the next track.
+    nowPlaying(doc) {
+      const el = bar(doc);
+      if (!el) return "";
+      return [el.textContent, ...[...el.querySelectorAll("a[href]")].map((a) => a.getAttribute("href"))].join("\n");
     },
   };
 })();

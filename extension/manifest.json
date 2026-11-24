@@ -20,6 +20,12 @@
     {
       "matches": ["https://open.spotify.com/*"],
       "js": ["src/sites/spotify.js", "src/content.js"]
+    },
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["src/sites/spotify-player.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
     }
   ]
 }
