@@ -45,3 +45,11 @@ test("Spotify: podcasts and absolute links count as content", async () => {
   assert.equal(spotify.isInterrupted(bar(["https://open.spotify.com/album/ID"])), false);
   assert.equal(spotify.isInterrupted(bar(["https://open.spotify.com.evil.example/album/ID"])), true);
 });
+
+test("Spotify: what's playing changes from one track to the next", async () => {
+  const spotify = await load("spotify");
+  const song = spotify.nowPlaying(fixture("spotify-playing"));
+  assert.equal(spotify.nowPlaying(fixture("spotify-playing")), song);
+  assert.notEqual(spotify.nowPlaying(fixture("spotify-interrupted")), song);
+  assert.equal(spotify.nowPlaying(page("<main></main>")), "");
+});

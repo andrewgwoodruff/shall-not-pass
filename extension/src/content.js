@@ -5,8 +5,37 @@
   const site = globalThis.shallNotPassSite;
   let last = null;
 
+  // Some sites start the next track a moment before the page shows what it
+  // is. For those, the tab goes quiet the instant a track changes and stays
+  // quiet until the page shows the new track, so the start of an interruption
+  // is never heard. Content gets its sound back as soon as it's on screen.
+  const HOLD_MAX_MS = 3000; // if the page never changes, e.g. the same song again
+  let hold = null;
+
+  window.addEventListener("shall-not-pass:track-change", () => {
+    if (!site.nowPlaying) return;
+    clearTimeout(hold?.timer);
+    hold = { from: site.nowPlaying(document), timer: setTimeout(release, HOLD_MAX_MS) };
+    check();
+  });
+
+  function release() {
+    clearTimeout(hold?.timer);
+    hold = null;
+    check();
+  }
+
+  function isInterrupted() {
+    if (hold && site.nowPlaying(document) === hold.from) return true;
+    if (hold) {
+      clearTimeout(hold.timer);
+      hold = null;
+    }
+    return Boolean(site.isInterrupted(document));
+  }
+
   function check() {
-    const interrupted = Boolean(site.isInterrupted(document));
+    const interrupted = isInterrupted();
     if (interrupted === last) return;
     last = interrupted;
     if (!chrome.runtime?.id) {
@@ -24,6 +53,7 @@
   observer.observe(document.documentElement, {
     subtree: true,
     childList: true,
+    characterData: true,
     attributes: true,
     attributeFilter: ["class", "href"],
   });

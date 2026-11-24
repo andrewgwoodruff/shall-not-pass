@@ -64,7 +64,7 @@ It asks for no permissions beyond the [supported sites](#what-it-works-with).
 | Where | Works with | Status |
 |---|---|---|
 | Mac | Spotify (desktop app) | Supported. Last tested with Spotify 1.3.6 on macOS 26.6 (Apple Silicon). |
-| Browser | YouTube and Spotify's web player | New. Chrome and other Chromium browsers. |
+| Browser | YouTube and Spotify's web player | New. Tested in Chrome on macOS; works in other Chromium browsers. |
 
 More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 
@@ -100,7 +100,7 @@ No. Only the supported app's own volume, or the one tab, changes. Calls, videos,
 No. It only talks to the app while it's already running.
 
 **Is it instant?**
-Close. In the browser, the tab is muted as soon as the page shows the interruption. On a Mac, interruptions at the end of a track are silenced within about a tenth of a second; one that starts somewhere else (say, right after you skip) takes up to 2 seconds.
+Close. In the browser, the tab is muted as soon as the page shows the interruption; on Spotify's web player, before it makes a sound. On a Mac, interruptions at the end of a track are silenced within about a tenth of a second; one that starts somewhere else (say, right after you skip) takes up to 2 seconds.
 
 **Does it use much battery?**
 No. The Mac version sleeps until the app sends an event or a track is about to end, plus one quick check every 2 seconds while something plays (every 10 while paused). The browser extension only wakes when the page changes.
