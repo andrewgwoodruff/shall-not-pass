@@ -4,7 +4,7 @@ Copy for the store's listing form. The name and summary come from `manifest.json
 
 **Name:** shall-not-pass
 
-**Summary** (132 characters max): Stands watch so you don't have to. Silences a tab during interruptions on YouTube and Spotify, and brings the sound back after.
+**Summary** (132 characters max): Stands watch so you don't have to. Silences a tab during interruptions on popular video and music sites, then brings the sound back.
 
 **Category:** Tools
 
@@ -12,11 +12,15 @@ Copy for the store's listing form. The name and summary come from `manifest.json
 
 > An over-engineered remote control that handles distractions for you.
 >
-> When something interrupts what you're watching or listening to on YouTube or Spotify's web player, shall-not-pass mutes that tab. When your content comes back, it unmutes it. That's all it does.
+> When something interrupts what you're watching or listening to, shall-not-pass mutes that tab. When your content comes back, it unmutes it. That's all it does.
+>
+> Works with:
+> • YouTube
+> • Spotify's web player
 >
 > • Doesn't block, skip, or change anything. Everything plays in full, just muted.
 > • You stay in charge: unmute the tab yourself and it stays unmuted.
-> • Runs only on youtube.com and open.spotify.com. Other tabs and sites are never touched.
+> • Runs only on the sites it works with. Other tabs and sites are never touched.
 > • Collects nothing, stores nothing, sends nothing.
 > • Open source: github.com/andrewgwoodruff/shall-not-pass
 >
