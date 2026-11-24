@@ -37,4 +37,4 @@ Copy for the store's listing form. The name and summary come from `manifest.json
 
 **Privacy policy URL:** the published copy of [privacy.md](privacy.md).
 
-**Screenshots** (1280×800): drawn illustrations in the style of the demo GIF, never screenshots of YouTube or Spotify.
+**Screenshots** (1280×800) and **small promo tile** (440×280): [`store/`](../store), drawn by `scripts/store_images.py`. Drawn illustrations only, never screenshots of YouTube or Spotify.
