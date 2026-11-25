@@ -49,13 +49,18 @@ To watch what it does before installing, run `bash macos/shall-not-pass.sh` and 
 
 For Chrome, Edge, Brave, Arc, and other Chromium browsers, on Mac, Windows, or Linux.
 
-*Coming soon to the Chrome Web Store.* Until then, load it yourself:
+**[Add it from the Chrome Web Store](https://chromewebstore.google.com/detail/shall-not-pass/pkmfbbfomcbicfohbkfkoadbhimolnkd)**
+
+It asks for no permissions beyond the [supported sites](#what-it-works-with), and updates itself.
+
+<details>
+<summary>Prefer to load it from the code?</summary>
 
 1. Download or clone this repo.
 2. Open `chrome://extensions` and turn on **Developer mode**.
 3. Click **Load unpacked** and choose the `extension` folder.
 
-It asks for no permissions beyond the [supported sites](#what-it-works-with).
+</details>
 
 ---
 
@@ -121,7 +126,7 @@ The browser extension works on Windows and Linux today. Other apps and platforms
 
 Re-running the install command also updates. If it ever stops working, especially after a supported app updates, update first. Details, including how to tell which install method a machine used: [Troubleshooting](macos/docs/troubleshooting.md).
 
-**Browser:** remove it from `chrome://extensions`. A copy you loaded yourself updates when you pull the repo and click the reload icon on its card.
+**Browser:** the Chrome Web Store version updates itself. To remove it, right-click its icon and choose **Remove from Chrome**, or use `chrome://extensions`. A copy you loaded from the code updates when you pull the repo and click the reload icon on its card.
 
 ---
 
