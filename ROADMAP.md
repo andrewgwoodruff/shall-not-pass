@@ -5,11 +5,11 @@
 ## ✅ Now
 
 - **Mac:** the Spotify desktop app.
-- **Browser:** YouTube and Spotify's web player, in Chrome and other Chromium browsers on Mac, Windows, and Linux.
+- **Browser:** YouTube and Spotify's web player, in Chrome and other Chromium browsers on Mac, Windows, and Linux. [In the Chrome Web Store](https://chromewebstore.google.com/detail/shall-not-pass/pkmfbbfomcbicfohbkfkoadbhimolnkd).
 
 ## 🔭 Next: more browsers
 
-The Chrome Web Store, then Firefox, then Safari. Safari also runs extensions on iPhone and iPad, so YouTube in Safari would come along too. ([#8](https://github.com/andrewgwoodruff/shall-not-pass/issues/8))
+Firefox, then Safari. Safari also runs extensions on iPhone and iPad, so YouTube in Safari would come along too. ([#8](https://github.com/andrewgwoodruff/shall-not-pass/issues/8))
 
 ## 💡 Later
 
