@@ -47,7 +47,7 @@ To watch what it does before installing, run `bash macos/shall-not-pass.sh` and 
 
 ### In your browser
 
-For Chrome, Edge, Brave, Arc, and other Chromium browsers, on Mac, Windows, or Linux.
+For Chrome, Edge, Brave, and other Chromium browsers, on Mac, Windows, or Linux. (Computers only; it isn't available on phones.)
 
 **[Add it from the Chrome Web Store](https://chromewebstore.google.com/detail/shall-not-pass/pkmfbbfomcbicfohbkfkoadbhimolnkd)**
 
@@ -69,7 +69,7 @@ It asks for no permissions beyond the [supported sites](#what-it-works-with), an
 | Where | Works with | Status |
 |---|---|---|
 | Mac | Spotify (desktop app) | Supported. Last tested with Spotify 1.3.6 on macOS 26.6 (Apple Silicon). |
-| Browser | YouTube and Spotify's web player | New. Tested in Chrome on macOS; works in other Chromium browsers. |
+| Browser | YouTube and Spotify's web player | New. Tested in Chrome and Edge on macOS; should work in other Chromium browsers. |
 
 More apps and platforms are [ideas on the roadmap](ROADMAP.md), not promises.
 
