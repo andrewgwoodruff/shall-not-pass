@@ -13,7 +13,8 @@ let context, worker;
 
 before(async () => {
   context = await chromium.launchPersistentContext("", {
-    channel: "chromium",
+    // BROWSER=msedge (or chrome, etc.) runs these in an installed browser instead.
+    channel: process.env.BROWSER ?? "chromium",
     args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
   });
   worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
